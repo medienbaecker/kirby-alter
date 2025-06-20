@@ -10,22 +10,33 @@
 			<k-section v-for="pageData in pageImages" :key="pageData.pageId" :label="pageData.pageTitle">
 				<k-grid style="--columns: 2; gap: 1rem;">
 					<div v-for="image in pageData.images" :key="image.id"
-						:class="{ 'has-changes': hasChanges(image.id) }" class="image-card">
+						:class="{ 'alt-review-card--has-changes': hasChanges(image.id) }" class="alt-review-card">
 						<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
 
-						<div class="image-info">
-							<k-text class="image-header">
+						<div class="alt-review-card__content">
+							<k-text class="alt-review-card__filename">
 								<strong>{{ image.filename }}</strong>
 							</k-text>
 
-							<k-input v-model="currentImages[image.id].alt" label="Alt text" type="text"
-								placeholder="No alt text" class="alt-text-input" />
+							<k-text-field
+								:value="currentImages[image.id].alt"
+								@input="currentImages[image.id].alt = $event"
+								placeholder="No alt text"
+								class="alt-review-card__alt-input" />
 
-							<div class="review-actions">
-								<k-toggle-input v-model="getImageData(image.id).alt_reviewed"
-									:text="['Pending', 'Reviewed']" />
+							<div class="alt-review-card__actions">
+								<label class="alt-review-card__checkbox">
+									<input
+										type="checkbox"
+										:checked="getImageData(image.id).alt_reviewed"
+										@change="$set(currentImages[image.id], 'alt_reviewed', $event.target.checked)"
+										class="alt-review-card__checkbox-input"
+									/>
+									<span class="alt-review-card__checkbox-label">Reviewed</span>
+								</label>
 								<k-button @click="saveImage(image.id)" :loading="saving[image.id]" icon="check"
-									variant="filled" size="sm" :class="{ 'save-button-hidden': !hasChanges(image.id) }">
+									variant="filled" size="sm"
+									:class="['alt-review-card__save-button', { 'alt-review-card__save-button--hidden': !hasChanges(image.id) }]">
 									Save
 								</k-button>
 							</div>
@@ -77,15 +88,6 @@ export default {
 						alt_reviewed: image.alt_reviewed
 					};
 
-					// Debug logging for initialization
-					console.log(`Initializing image ${image.id}:`, {
-						alt: `"${image.alt}"`,
-						alt_reviewed: image.alt_reviewed,
-						altType: typeof image.alt,
-						reviewedType: typeof image.alt_reviewed,
-						filename: image.filename
-					});
-
 					this.$set(this.originalImages, image.id, { ...imageData });
 					this.$set(this.currentImages, image.id, { ...imageData });
 					this.$set(this.saving, image.id, false);
@@ -97,38 +99,14 @@ export default {
 			return this.currentImages[imageId] || { alt: '', alt_reviewed: false };
 		},
 
-
 		hasChanges(imageId) {
 			const current = this.currentImages[imageId];
 			const original = this.originalImages[imageId];
 
 			if (!current || !original) return false;
 
-			const altChanged = current.alt !== original.alt;
-			const reviewedChanged = current.alt_reviewed !== original.alt_reviewed;
-			const hasChanges = altChanged || reviewedChanged;
-
-			// Debug logging
-			if (hasChanges) {
-				console.log(`Changes detected for image ${imageId}:`, {
-					current: {
-						alt: `"${current.alt}"`,
-						alt_reviewed: current.alt_reviewed,
-						altType: typeof current.alt,
-						reviewedType: typeof current.alt_reviewed
-					},
-					original: {
-						alt: `"${original.alt}"`,
-						alt_reviewed: original.alt_reviewed,
-						altType: typeof original.alt,
-						reviewedType: typeof original.alt_reviewed
-					},
-					altChanged,
-					reviewedChanged
-				});
-			}
-
-			return hasChanges;
+			return current.alt !== original.alt ||
+				current.alt_reviewed !== original.alt_reviewed;
 		},
 
 		async saveImage(imageId) {
@@ -205,38 +183,59 @@ export default {
 </script>
 
 <style scoped>
-.image-card {
+.alt-review-card {
 	overflow: hidden;
 	border-radius: var(--rounded);
 	background: light-dark(var(--color-white), var(--color-gray-850));
 	border: 1px solid var(--color-border);
 }
 
-.image-info {
+.alt-review-card--has-changes {
+	outline: 2px solid var(--color-orange-400);
+	outline-offset: -1px;
+}
+
+.alt-review-card__content {
 	padding: 1rem;
 }
 
-.image-header {
+.alt-review-card__filename {
 	margin-bottom: 1rem;
 }
 
-.alt-text-input {
+.alt-review-card__alt-input {
 	margin-bottom: 1rem;
 }
 
-.review-actions {
+.alt-review-card__actions {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
 }
 
-.image-card.has-changes {
-	outline: 2px solid var(--color-orange-400);
-	outline-offset: -1px;
+.alt-review-card__checkbox {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+	user-select: none;
 }
 
-.save-button-hidden {
+.alt-review-card__checkbox-input {
+	width: 1rem;
+	height: 1rem;
+	margin: 0;
+	cursor: pointer;
+}
+
+.alt-review-card__checkbox-label {
+	font-size: 0.875rem;
+	color: var(--color-text);
+	cursor: pointer;
+}
+
+.alt-review-card__save-button--hidden {
 	visibility: hidden;
 	pointer-events: none;
 }
