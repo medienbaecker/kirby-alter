@@ -7,24 +7,19 @@
 		</div>
 
 		<div v-else>
-			<div v-for="pageData in pageImages" :key="pageData.pageId" class="page-section">
-				<k-headline-field :label="pageData.pageTitle" />
-
-				<div class="image-grid">
-					<div v-for="image in pageData.images" :key="image.id" class="image-card"
-						:class="{ 'has-changes': hasChanges(image.id) }">
+			<k-section v-for="pageData in pageImages" :key="pageData.pageId" :label="pageData.pageTitle">
+				<k-grid style="--columns: 2; gap: 1rem;">
+					<div v-for="image in pageData.images" :key="image.id"
+						:class="{ 'has-changes': hasChanges(image.id) }" class="image-card">
 						<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
 
 						<div class="image-info">
-							<div class="image-header">
-								<k-text>
-									<strong>{{ image.filename }}</strong>
-								</k-text>
-							</div>
+							<k-text class="image-header">
+								<strong>{{ image.filename }}</strong>
+							</k-text>
 
-							<div class="alt-text-section">
-								<k-input v-model="currentImages[image.id].alt" label="Alt text" type="text" />
-							</div>
+							<k-input v-model="currentImages[image.id].alt" label="Alt text" type="text"
+								placeholder="No alt text" class="alt-text-input" />
 
 							<div class="review-actions">
 								<k-toggle-input v-model="getImageData(image.id).alt_reviewed"
@@ -36,9 +31,8 @@
 							</div>
 						</div>
 					</div>
-				</div>
-
-			</div>
+				</k-grid>
+			</k-section>
 		</div>
 	</k-panel-inside>
 </template>
@@ -82,7 +76,7 @@ export default {
 						alt: image.alt,
 						alt_reviewed: image.alt_reviewed
 					};
-					
+
 					// Debug logging for initialization
 					console.log(`Initializing image ${image.id}:`, {
 						alt: `"${image.alt}"`,
@@ -91,7 +85,7 @@ export default {
 						reviewedType: typeof image.alt_reviewed,
 						filename: image.filename
 					});
-					
+
 					this.$set(this.originalImages, image.id, { ...imageData });
 					this.$set(this.currentImages, image.id, { ...imageData });
 					this.$set(this.saving, image.id, false);
@@ -157,7 +151,7 @@ export default {
 				// Update original state to match current
 				this.$set(this.originalImages, imageId, { ...current });
 
-				this.$panel.notification.success('Changes saved successfully');
+				this.$panel.notification.success();
 
 			} catch (error) {
 				this.$panel.notification.error('Failed to save changes');
@@ -211,17 +205,6 @@ export default {
 </script>
 
 <style scoped>
-.page-section {
-	margin-bottom: 2rem;
-}
-
-.image-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-	gap: 2rem;
-	margin: 2rem 0;
-}
-
 .image-card {
 	overflow: hidden;
 	border-radius: var(--rounded);
@@ -234,21 +217,10 @@ export default {
 }
 
 .image-header {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
 	margin-bottom: 1rem;
 }
 
-.filename-title {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.alt-text-section {
+.alt-text-input {
 	margin-bottom: 1rem;
 }
 
@@ -259,27 +231,9 @@ export default {
 	gap: 1rem;
 }
 
-.page-separator {
-	margin: 2rem 0;
-	border: none;
-	border-top: 1px solid var(--color-border);
-}
-
 .image-card.has-changes {
-	box-shadow: 0 4px 12px light-dark(rgba(0, 0, 0, 0.15), rgba(255, 255, 255, 0.1));
-	border-color: var(--color-blue-500);
-}
-
-.page-title-link,
-.filename-link {
-	color: inherit;
-	text-decoration: none;
-}
-
-.page-title-link:hover,
-.filename-link:hover {
-	color: var(--color-blue-600);
-	text-decoration: underline;
+	outline: 2px solid var(--color-orange-400);
+	outline-offset: -1px;
 }
 
 .save-button-hidden {
