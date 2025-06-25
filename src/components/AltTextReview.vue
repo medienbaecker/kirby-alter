@@ -1,49 +1,60 @@
 <template>
 	<k-panel-inside class="k-alt-text-review-view">
-		<k-header>Alt Text Review</k-header>
+		<k-header>
+			{{ $t('medienbaecker.alt-text-review.title') }}
+			<template #buttons>
+				<k-button @click="saveAllChanges" icon="check" theme="orange" variant="filled" size="sm"
+					:style="{ visibility: hasAnyChanges ? 'visible' : 'hidden' }">
+					{{ $t('medienbaecker.alt-text-review.save') }}
+				</k-button>
+				<k-button v-if="!loading && totalImagesCount > 0" element="span" variant="filled" size="sm"
+					:theme="isComplete ? 'positive' : null">
+					{{ `${reviewedImagesCount}/${totalImagesCount}` }}
+				</k-button>
+			</template>
+		</k-header>
 
-		<div v-if="pageImages.length === 0" class="k-empty">
-			<k-text>No images found</k-text>
+		<div v-if="loading" class="k-loader">
+			<k-loader />
+		</div>
+
+		<div v-else-if="images.length === 0" class="k-empty">
+			<k-text>{{ $t('medienbaecker.alt-text-review.noImages') }}</k-text>
 		</div>
 
 		<div v-else>
-			<k-section v-for="pageData in pageImages" :key="pageData.pageId" :label="pageData.pageTitle">
-				<k-grid style="--columns: 2; gap: 1rem;">
-					<div v-for="image in pageData.images" :key="image.id"
-						:class="{ 'alt-review-card--has-changes': hasChanges(image.id) }" class="alt-review-card">
+			<k-grid style="--columns: 2; gap: 1rem;">
+				<div v-for="image in images" :key="image.id"
+					:class="{ 'alt-review-card--has-changes': currentImages[image.id] && hasChanges(image.id) }"
+					class="alt-review-card">
+					<k-link :to="image.panelUrl" class="alt-review-card__image-link">
 						<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
+					</k-link>
 
-						<div class="alt-review-card__content">
-							<k-text class="alt-review-card__filename">
-								<strong>{{ image.filename }}</strong>
-							</k-text>
+					<div class="alt-review-card__content">
+						<k-text class="alt-review-card__filename">
+							<strong>{{ image.filename }}</strong>
+						</k-text>
 
-							<k-text-field
-								:value="currentImages[image.id].alt"
-								@input="currentImages[image.id].alt = $event"
-								placeholder="No alt text"
-								class="alt-review-card__alt-input" />
+						<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''"
+							@input="currentImages[image.id] && (currentImages[image.id].alt = $event)"
+							:placeholder="$t('medienbaecker.alt-text-review.noAltText')"
+							class="alt-review-card__alt-input" />
 
-							<div class="alt-review-card__actions">
-								<label class="alt-review-card__checkbox">
-									<input
-										type="checkbox"
-										:checked="getImageData(image.id).alt_reviewed"
-										@change="$set(currentImages[image.id], 'alt_reviewed', $event.target.checked)"
-										class="alt-review-card__checkbox-input"
-									/>
-									<span class="alt-review-card__checkbox-label">Reviewed</span>
-								</label>
-								<k-button @click="saveImage(image.id)" :loading="saving[image.id]" icon="check"
-									variant="filled" size="sm"
-									:class="['alt-review-card__save-button', { 'alt-review-card__save-button--hidden': !hasChanges(image.id) }]">
-									Save
-								</k-button>
-							</div>
-						</div>
+						<label class="alt-review-card__checkbox">
+							<input type="checkbox" :checked="getImageData(image.id).alt_reviewed"
+								@change="$set(currentImages[image.id], 'alt_reviewed', $event.target.checked)"
+								class="alt-review-card__checkbox-input" />
+							<span class="alt-review-card__checkbox-label">{{
+								$t('medienbaecker.alt-text-review.reviewed')
+							}}</span>
+						</label>
 					</div>
-				</k-grid>
-			</k-section>
+				</div>
+			</k-grid>
+
+			<k-pagination v-if="pagination.total > pagination.limit" :page="pagination.page" :total="pagination.total"
+				:limit="pagination.limit" :details="true" @paginate="onPageChange" style="margin-top: 2rem;" />
 		</div>
 	</k-panel-inside>
 </template>
@@ -51,9 +62,9 @@
 <script>
 export default {
 	props: {
-		pageImages: {
-			type: Array,
-			default: () => []
+		page: {
+			type: Number,
+			default: 1
 		}
 	},
 
@@ -61,13 +72,41 @@ export default {
 		return {
 			currentImages: {},
 			originalImages: {},
-			saving: {}
+			saving: {},
+			images: [],
+			pagination: { page: 1, pages: 1, total: 0, limit: 100 },
+			loading: false,
 		}
 	},
 
+	computed: {
+		reviewedImagesCount() {
+			return Object.values(this.currentImages).filter(img => img.alt_reviewed).length;
+		},
+
+		totalImagesCount() {
+			return this.pagination.total;
+		},
+
+		isComplete() {
+			return this.pagination.total > 0 && this.reviewedImagesCount === this.pagination.total;
+		},
+
+		hasAnyChanges() {
+			return Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
+		}
+	},
+
+	watch: {
+		page(newPage) {
+			// Load images when the page prop changes (from route)
+			this.loadImages(newPage);
+		}
+	},
 
 	created() {
-		this.initializeImageData();
+		// Use the page prop from the route
+		this.loadImages(this.page);
 	},
 
 	mounted() {
@@ -79,21 +118,60 @@ export default {
 	},
 
 	methods: {
-		initializeImageData() {
-			// Flatten all images and store original + current state
-			this.pageImages.forEach(pageData => {
-				pageData.images.forEach(image => {
-					const imageData = {
-						alt: image.alt,
-						alt_reviewed: image.alt_reviewed
-					};
-
-					this.$set(this.originalImages, image.id, { ...imageData });
-					this.$set(this.currentImages, image.id, { ...imageData });
-					this.$set(this.saving, image.id, false);
+		async loadImages(page = 1) {
+			this.loading = true;
+			try {
+				const response = await this.$api.get('alt-text-review/images', {
+					page: page
 				});
+
+				this.images = response.images;
+				this.pagination = response.pagination;
+
+				this.initializeImageData();
+			} catch (error) {
+				console.error('Failed to load images:', error);
+				this.$panel.notification.error('Failed to load images');
+			} finally {
+				this.loading = false;
+			}
+		},
+
+		initializeImageData() {
+			// Clear previous page data
+			this.currentImages = {};
+			this.originalImages = {};
+			this.saving = {};
+
+			// Store original + current state for current page images
+			this.images.forEach(image => {
+				const imageData = {
+					alt: image.alt,
+					alt_reviewed: image.alt_reviewed
+				};
+
+				this.$set(this.originalImages, image.id, { ...imageData });
+				this.$set(this.currentImages, image.id, { ...imageData });
+				this.$set(this.saving, image.id, false);
 			});
 		},
+
+		onPageChange(paginationData) {
+			const hasUnsaved = Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
+
+			if (hasUnsaved) {
+				if (!confirm(this.$t('medienbaecker.alt-text-review.unsavedChanges'))) {
+					return;
+				}
+			}
+
+			// Extract the page number from the pagination object
+			const page = paginationData.page || paginationData;
+
+			// Update the URL to preserve pagination state
+			this.$go(`/alt-text-review/${page}`);
+		},
+
 
 		getImageData(imageId) {
 			return this.currentImages[imageId] || { alt: '', alt_reviewed: false };
@@ -132,7 +210,7 @@ export default {
 				this.$panel.notification.success();
 
 			} catch (error) {
-				this.$panel.notification.error('Failed to save changes');
+				this.$panel.notification.error(this.$t('medienbaecker.alt-text-review.error'));
 				console.error(error);
 			} finally {
 				this.$set(this.saving, imageId, false);
@@ -152,6 +230,7 @@ export default {
 
 			return response;
 		},
+
 
 
 
@@ -177,7 +256,9 @@ export default {
 			changedImages.forEach(imageId => {
 				this.saveImage(imageId);
 			});
-		}
+		},
+
+
 	}
 }
 </script>
@@ -207,13 +288,6 @@ export default {
 	margin-bottom: 1rem;
 }
 
-.alt-review-card__actions {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-}
-
 .alt-review-card__checkbox {
 	display: flex;
 	align-items: center;
@@ -235,8 +309,9 @@ export default {
 	cursor: pointer;
 }
 
-.alt-review-card__save-button--hidden {
-	visibility: hidden;
-	pointer-events: none;
+
+
+.alt-review-card__image-link {
+	display: block;
 }
 </style>
