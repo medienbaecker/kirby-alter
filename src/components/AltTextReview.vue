@@ -11,6 +11,9 @@
 					:theme="isComplete ? 'positive' : null">
 					{{ `${reviewedImagesCount}/${totalImagesCount}` }}
 				</k-button>
+				<k-button v-if="currentLanguage" element="span" variant="filled" size="sm">
+					{{ currentLanguage.toUpperCase() }}
+				</k-button>
 			</template>
 		</k-header>
 
@@ -94,6 +97,11 @@ export default {
 
 		hasAnyChanges() {
 			return Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
+		},
+
+		currentLanguage() {
+			// Get current language from panel
+			return this.$panel.language ? this.$panel.language.code : null;
 		}
 	},
 
@@ -101,6 +109,21 @@ export default {
 		page(newPage) {
 			// Load images when the page prop changes (from route)
 			this.loadImages(newPage);
+		},
+
+		currentLanguage(newLanguage, oldLanguage) {
+			// Reload images when language changes
+			if (newLanguage !== oldLanguage && oldLanguage !== undefined) {
+				const hasUnsaved = Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
+				
+				if (hasUnsaved) {
+					if (!confirm(this.$t('medienbaecker.alt-text-review.unsavedChanges'))) {
+						return;
+					}
+				}
+				
+				this.loadImages(this.page);
+			}
 		}
 	},
 
