@@ -42,12 +42,12 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 				'action' => function () {
 					$request = kirby()->request();
 					$page = (int)$request->get('page', 1);
-					$limit = 100; // Fixed limit as requested
-					
+					$limit = 100;
+
 					// Get current language from panel
 					$currentLanguage = kirby()->language();
 					$languageCode = $currentLanguage ? $currentLanguage->code() : null;
-					
+
 					// Collect all images
 					$allImages = [];
 					$pages = site()->index();
@@ -62,7 +62,7 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 								} else {
 									$altText = $image->alt()->value() ?? '';
 								}
-								
+
 								$allImages[] = [
 									'id' => $image->id(),
 									'url' => $image->url(),
@@ -74,6 +74,7 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 									'pageTitle' => $sitePage->title()->value(),
 									'pageId' => $sitePage->id(),
 									'pagePanelUrl' => $sitePage->panel()->url(),
+									'pageSort' => $sitePage->num(),
 									'language' => $languageCode,
 								];
 							}
@@ -125,14 +126,14 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 						// Get current language for saving
 						$currentLanguage = kirby()->language();
 						$languageCode = $currentLanguage ? $currentLanguage->code() : null;
-						
+
 						// Save to specific language if multilingual site
 						if ($languageCode && $field === 'alt') {
 							$image->update([$field => $value], $languageCode);
 						} else {
 							$image->update([$field => $value]);
 						}
-						
+
 						return ['success' => true, 'message' => t('medienbaecker.alt-text-review.success')];
 					} catch (Exception $e) {
 						return ['error' => $e->getMessage()];

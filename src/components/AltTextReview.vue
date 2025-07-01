@@ -26,35 +26,46 @@
 		</div>
 
 		<div v-else>
-			<k-grid style="--columns: 2; gap: 1rem;">
-				<div v-for="image in images" :key="image.id"
-					:class="{ 'alt-review-card--has-changes': currentImages[image.id] && hasChanges(image.id) }"
-					class="alt-review-card">
-					<k-link :to="image.panelUrl" class="alt-review-card__image-link">
-						<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
+			<div v-for="pageGroup in groupedImages" :key="pageGroup.pageId" class="page-group">
+				<div class="page-group__header">
+					<k-link :to="pageGroup.pagePanelUrl" class="page-group__title">
+						<k-headline size="h2">{{ pageGroup.pageTitle }}</k-headline>
 					</k-link>
-
-					<div class="alt-review-card__content">
-						<k-text class="alt-review-card__filename">
-							<strong>{{ image.filename }}</strong>
-						</k-text>
-
-						<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''"
-							@input="currentImages[image.id] && (currentImages[image.id].alt = $event)"
-							:placeholder="$t('medienbaecker.alt-text-review.noAltText')"
-							class="alt-review-card__alt-input" />
-
-						<label class="alt-review-card__checkbox">
-							<input type="checkbox" :checked="getImageData(image.id).alt_reviewed"
-								@change="$set(currentImages[image.id], 'alt_reviewed', $event.target.checked)"
-								class="alt-review-card__checkbox-input" />
-							<span class="alt-review-card__checkbox-label">{{
-								$t('medienbaecker.alt-text-review.reviewed')
-							}}</span>
-						</label>
-					</div>
+					<k-badge>
+						{{ pageGroup.images.length }} {{ pageGroup.images.length === 1 ? $t('medienbaecker.alt-text-review.image') : $t('medienbaecker.alt-text-review.images') }}
+					</k-badge>
 				</div>
-			</k-grid>
+
+				<k-grid style="--columns: 2; gap: 1rem;" class="page-group__grid">
+					<div v-for="image in pageGroup.images" :key="image.id"
+						:class="{ 'alt-review-card--has-changes': currentImages[image.id] && hasChanges(image.id) }"
+						class="alt-review-card">
+						<k-link :to="image.panelUrl" class="alt-review-card__image-link">
+							<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
+						</k-link>
+
+						<div class="alt-review-card__content">
+							<k-text class="alt-review-card__filename">
+								<strong>{{ image.filename }}</strong>
+							</k-text>
+
+							<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''"
+								@input="currentImages[image.id] && (currentImages[image.id].alt = $event)"
+								:placeholder="$t('medienbaecker.alt-text-review.noAltText')"
+								class="alt-review-card__alt-input" />
+
+							<label class="alt-review-card__checkbox">
+								<input type="checkbox" :checked="getImageData(image.id).alt_reviewed"
+									@change="$set(currentImages[image.id], 'alt_reviewed', $event.target.checked)"
+									class="alt-review-card__checkbox-input" />
+								<span class="alt-review-card__checkbox-label">{{
+									$t('medienbaecker.alt-text-review.reviewed')
+								}}</span>
+							</label>
+						</div>
+					</div>
+				</k-grid>
+			</div>
 
 			<k-pagination v-if="pagination.total > pagination.limit" :page="pagination.page" :total="pagination.total"
 				:limit="pagination.limit" :details="true" @paginate="onPageChange" style="margin-top: 2rem;" />
@@ -102,6 +113,38 @@ export default {
 		currentLanguage() {
 			// Get current language from panel
 			return this.$panel.language ? this.$panel.language.code : null;
+		},
+
+		groupedImages() {
+			// Group images by their parent page
+			const groups = {};
+			
+			this.images.forEach(image => {
+				const pageId = image.pageId;
+				if (!groups[pageId]) {
+					groups[pageId] = {
+						pageTitle: image.pageTitle,
+						pageId: image.pageId,
+						pagePanelUrl: image.pagePanelUrl,
+						pageSort: image.pageSort,
+						images: []
+					};
+				}
+				groups[pageId].images.push(image);
+			});
+
+			// Convert to array and sort by page number, then by title
+			return Object.values(groups).sort((a, b) => {
+				// Sort by page number first (if both have numbers)
+				if (a.pageSort !== null && b.pageSort !== null) {
+					return a.pageSort - b.pageSort;
+				}
+				// If one has no number, put numbered pages first
+				if (a.pageSort !== null && b.pageSort === null) return -1;
+				if (a.pageSort === null && b.pageSort !== null) return 1;
+				// If both have no numbers, sort alphabetically
+				return a.pageTitle.localeCompare(b.pageTitle);
+			});
 		}
 	},
 
@@ -336,5 +379,32 @@ export default {
 
 .alt-review-card__image-link {
 	display: block;
+}
+
+.page-group {
+	margin-bottom: 3rem;
+}
+
+.page-group__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1.5rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.page-group__title {
+	text-decoration: none;
+	color: inherit;
+}
+
+.page-group__title:hover {
+	text-decoration: underline;
+}
+
+
+.page-group__grid {
+	margin-bottom: 1rem;
 }
 </style>

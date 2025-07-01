@@ -3,7 +3,7 @@
     "description": "Alt Text Review",
     "license": "MIT",
     "type": "kirby-plugin",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "authors": [
         {
             "name": "Thomas Günther",

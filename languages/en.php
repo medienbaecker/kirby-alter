@@ -8,4 +8,6 @@ return array(
 	'medienbaecker.alt-text-review.save'             => 'Save',
 	'medienbaecker.alt-text-review.error'            => 'Failed to save changes',
 	'medienbaecker.alt-text-review.unsavedChanges'   => 'You have unsaved changes. Continue anyway?',
+	'medienbaecker.alt-text-review.image'            => 'image',
+	'medienbaecker.alt-text-review.images'           => 'images',
 );
