@@ -58,9 +58,9 @@ return [
 	]
 ];
 
-Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
-
 ```
+
+Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
 
 ## Installation
 
