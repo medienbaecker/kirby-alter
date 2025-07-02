@@ -9,7 +9,7 @@ A [Kirby](https://getkirby.com/) plugin for generating and reviewing alt texts f
 
 ### Panel view
 
-The plugin provides a panel area for reviewing and managing alt texts of images across all pages in your site. Each image also gets a "Reviewed" checkbox that gets saved as `alt_reviewed` in the file's content file.
+The plugin provides a custom panel view for reviewing and managing alt texts of images across all pages in your site. Each image also gets a "Reviewed" checkbox that gets saved as `alt_reviewed` in the file's content file.
 
 ![Panel view](https://github.com/user-attachments/assets/6136bebe-ec70-4a33-ab61-80a994af237c)
 
