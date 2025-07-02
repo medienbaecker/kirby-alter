@@ -1,7 +1,7 @@
-import AltTextReview from "./components/AltTextReview.vue";
+import AlterView from "./components/AlterView.vue";
 
-panel.plugin("medienbaecker/alt-text-review", {
+panel.plugin("medienbaecker/alter", {
   components: {
-    "k-alt-text-review-view": AltTextReview,
+    "k-alter-view": AlterView,
   },
 });

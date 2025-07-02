@@ -1,13 +1,17 @@
 <?php
 
 return array(
-	'medienbaecker.alt-text-review.title'            => 'Alt Texts',
-	'medienbaecker.alt-text-review.noImages'         => 'No images found',
-	'medienbaecker.alt-text-review.noAltText'        => 'No alt text',
-	'medienbaecker.alt-text-review.reviewed'         => 'Reviewed',
-	'medienbaecker.alt-text-review.save'             => 'Save',
-	'medienbaecker.alt-text-review.error'            => 'Failed to save changes',
-	'medienbaecker.alt-text-review.unsavedChanges'   => 'You have unsaved changes. Continue anyway?',
-	'medienbaecker.alt-text-review.image'            => 'image',
-	'medienbaecker.alt-text-review.images'           => 'images',
+	'medienbaecker.alter.title'            => 'Alt texts',
+	'medienbaecker.alter.noImages'         => 'No images found',
+	'medienbaecker.alter.noAltText'        => 'No alt text',
+	'medienbaecker.alter.reviewed'         => 'Reviewed',
+	'medienbaecker.alter.save'             => 'Save',
+	'medienbaecker.alter.error'            => 'Failed to save changes',
+	'medienbaecker.alter.unsavedChanges'   => 'You have unsaved changes. Continue anyway?',
+	'medienbaecker.alter.image'            => 'image',
+	'medienbaecker.alter.images'           => 'images',
+	'medienbaecker.alter.notAuthenticated' => 'Not authenticated',
+	'medienbaecker.alter.invalidField'     => 'Invalid field',
+	'medienbaecker.alter.imageNotFound'    => 'Image not found',
+	'medienbaecker.alter.success'          => 'Changes saved successfully',
 );

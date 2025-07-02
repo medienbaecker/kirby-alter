@@ -2,28 +2,27 @@
 
 use Kirby\Cms\App as Kirby;
 
-Kirby::plugin('medienbaecker/alt-text-review', [
-	'assets' => [
-		'index.js' => __DIR__ . '/index.js',
-		'index.css' => __DIR__ . '/index.css'
+Kirby::plugin('medienbaecker/alter', [
+	'options' => [
+		'apiKey' => null,
 	],
 	'translations' => [
 		'de' => require_once __DIR__ . '/languages/de.php',
 		'en' => require_once __DIR__ . '/languages/en.php',
 	],
 	'areas' => [
-		'alt-text-review' => function ($kirby) {
+		'alter' => function ($kirby) {
 			return [
-				'label' => t('medienbaecker.alt-text-review.title'),
+				'label' => t('medienbaecker.alter.title'),
 				'icon' => 'image',
 				'menu' => true,
-				'link' => 'alt-text-review',
+				'link' => 'alter',
 				'views' => [
 					[
-						'pattern' => 'alt-text-review/(:num?)',
+						'pattern' => 'alter/(:num?)',
 						'action' => function ($page = 1) {
 							return [
-								'component' => 'k-alt-text-review-view',
+								'component' => 'k-alter-view',
 								'props' => [
 									'page' => (int)$page
 								]
@@ -37,7 +36,7 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 	'api' => [
 		'routes' => [
 			[
-				'pattern' => 'alt-text-review/images',
+				'pattern' => 'alter/images',
 				'method' => 'GET',
 				'action' => function () {
 					$request = kirby()->request();
@@ -100,12 +99,12 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 				}
 			],
 			[
-				'pattern' => 'alt-text-review/update',
+				'pattern' => 'alter/update',
 				'method' => 'POST',
 				'action' => function () {
 					$user = kirby()->user();
 					if (!$user) {
-						return ['error' => t('medienbaecker.alt-text-review.notAuthenticated')];
+						return ['error' => t('medienbaecker.alter.notAuthenticated')];
 					}
 
 					$request = kirby()->request();
@@ -114,13 +113,13 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 					$value = $request->body()->get('value');
 
 					if (!in_array($field, ['alt', 'alt_reviewed'])) {
-						return ['error' => t('medienbaecker.alt-text-review.invalidField')];
+						return ['error' => t('medienbaecker.alter.invalidField')];
 					}
 
 					try {
 						$image = kirby()->file($imageId);
 						if (!$image) {
-							return ['error' => t('medienbaecker.alt-text-review.imageNotFound')];
+							return ['error' => t('medienbaecker.alter.imageNotFound')];
 						}
 
 						// Get current language for saving
@@ -134,12 +133,15 @@ Kirby::plugin('medienbaecker/alt-text-review', [
 							$image->update([$field => $value]);
 						}
 
-						return ['success' => true, 'message' => t('medienbaecker.alt-text-review.success')];
+						return ['success' => true, 'message' => t('medienbaecker.alter.success')];
 					} catch (Exception $e) {
 						return ['error' => $e->getMessage()];
 					}
 				}
 			]
 		]
+	],
+	'commands' => [
+		'alter:generate' => require_once __DIR__ . '/commands/generate.php',
 	]
 ]);

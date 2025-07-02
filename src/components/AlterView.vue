@@ -1,11 +1,11 @@
 <template>
-	<k-panel-inside class="k-alt-text-review-view">
+	<k-panel-inside class="k-alter-view">
 		<k-header>
-			{{ $t('medienbaecker.alt-text-review.title') }}
+			{{ $t('medienbaecker.alter.title') }}
 			<template #buttons>
 				<k-button @click="saveAllChanges" icon="check" theme="orange" variant="filled" size="sm"
 					:style="{ visibility: hasAnyChanges ? 'visible' : 'hidden' }">
-					{{ $t('medienbaecker.alt-text-review.save') }}
+					{{ $t('medienbaecker.alter.save') }}
 				</k-button>
 				<k-button v-if="!loading && totalImagesCount > 0" element="span" variant="filled" size="sm"
 					:theme="isComplete ? 'positive' : null">
@@ -22,7 +22,7 @@
 		</div>
 
 		<div v-else-if="images.length === 0" class="k-empty">
-			<k-text>{{ $t('medienbaecker.alt-text-review.noImages') }}</k-text>
+			<k-text>{{ $t('medienbaecker.alter.noImages') }}</k-text>
 		</div>
 
 		<div v-else>
@@ -32,7 +32,9 @@
 						<k-headline size="h2">{{ pageGroup.pageTitle }}</k-headline>
 					</k-link>
 					<k-badge>
-						{{ pageGroup.images.length }} {{ pageGroup.images.length === 1 ? $t('medienbaecker.alt-text-review.image') : $t('medienbaecker.alt-text-review.images') }}
+						{{ pageGroup.images.length }} {{ pageGroup.images.length === 1 ? $t('medienbaecker.alter.image')
+							:
+							$t('medienbaecker.alter.images') }}
 					</k-badge>
 				</div>
 
@@ -41,7 +43,8 @@
 						:class="{ 'alt-review-card--has-changes': currentImages[image.id] && hasChanges(image.id) }"
 						class="alt-review-card">
 						<k-link :to="image.panelUrl" class="alt-review-card__image-link">
-							<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
+							<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern"
+								ratio="3/2" />
 						</k-link>
 
 						<div class="alt-review-card__content">
@@ -51,15 +54,14 @@
 
 							<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''"
 								@input="currentImages[image.id] && (currentImages[image.id].alt = $event)"
-								:placeholder="$t('medienbaecker.alt-text-review.noAltText')"
-								class="alt-review-card__alt-input" />
+								:placeholder="$t('medienbaecker.alter.noAltText')" class="alt-review-card__alt-input" />
 
 							<label class="alt-review-card__checkbox">
 								<input type="checkbox" :checked="getImageData(image.id).alt_reviewed"
 									@change="$set(currentImages[image.id], 'alt_reviewed', $event.target.checked)"
 									class="alt-review-card__checkbox-input" />
 								<span class="alt-review-card__checkbox-label">{{
-									$t('medienbaecker.alt-text-review.reviewed')
+									$t('medienbaecker.alter.reviewed')
 								}}</span>
 							</label>
 						</div>
@@ -118,7 +120,7 @@ export default {
 		groupedImages() {
 			// Group images by their parent page
 			const groups = {};
-			
+
 			this.images.forEach(image => {
 				const pageId = image.pageId;
 				if (!groups[pageId]) {
@@ -158,13 +160,13 @@ export default {
 			// Reload images when language changes
 			if (newLanguage !== oldLanguage && oldLanguage !== undefined) {
 				const hasUnsaved = Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
-				
+
 				if (hasUnsaved) {
-					if (!confirm(this.$t('medienbaecker.alt-text-review.unsavedChanges'))) {
+					if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
 						return;
 					}
 				}
-				
+
 				this.loadImages(this.page);
 			}
 		}
@@ -187,7 +189,7 @@ export default {
 		async loadImages(page = 1) {
 			this.loading = true;
 			try {
-				const response = await this.$api.get('alt-text-review/images', {
+				const response = await this.$api.get('alter/images', {
 					page: page
 				});
 
@@ -226,7 +228,7 @@ export default {
 			const hasUnsaved = Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
 
 			if (hasUnsaved) {
-				if (!confirm(this.$t('medienbaecker.alt-text-review.unsavedChanges'))) {
+				if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
 					return;
 				}
 			}
@@ -235,7 +237,7 @@ export default {
 			const page = paginationData.page || paginationData;
 
 			// Update the URL to preserve pagination state
-			this.$go(`/alt-text-review/${page}`);
+			this.$go(`/alter/${page}`);
 		},
 
 
@@ -276,7 +278,7 @@ export default {
 				this.$panel.notification.success();
 
 			} catch (error) {
-				this.$panel.notification.error(this.$t('medienbaecker.alt-text-review.error'));
+				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
 				console.error(error);
 			} finally {
 				this.$set(this.saving, imageId, false);
@@ -284,7 +286,7 @@ export default {
 		},
 
 		async updateField(imageId, field, value) {
-			const response = await this.$api.post('alt-text-review/update', {
+			const response = await this.$api.post('alter/update', {
 				imageId: imageId,
 				field: field,
 				value: value
