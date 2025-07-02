@@ -107,7 +107,9 @@ class AltTextGenerator
 	{
 		if (!kirby()->multilang()) {
 			// For single-language sites, ask for the language name
-			$languageName = $this->cli->input('Language for alt text generation:', 'English');
+			$input = $this->cli->input('Language for alt text generation (English):');
+			$input->defaultTo('English');
+			$languageName = $input->prompt();
 
 			$mockLanguage = new class($languageName) {
 				private string $name;
