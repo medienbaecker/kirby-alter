@@ -11,7 +11,7 @@ A [Kirby](https://getkirby.com/) plugin for generating and reviewing alt texts f
 
 The plugin provides a custom panel view for reviewing and managing alt texts of images across all pages in your site. Each image also gets a "Reviewed" checkbox that gets saved as `alt_reviewed` in the file's content file.
 
-![Panel view](https://github.com/user-attachments/assets/6136bebe-ec70-4a33-ab61-80a994af237c)
+![Screenshot of the custom panel view with several cat images and alt texts](https://github.com/user-attachments/assets/6136bebe-ec70-4a33-ab61-80a994af237c)
 
 ### CLI command
 
@@ -20,7 +20,7 @@ I also included an `alter:generate` [CLI command](https://github.com/getkirby/cl
 - Supports multi-language installations and only uploads the image for the default language and then translates the generated alt text to the other languages
 - Detects duplicate images and saves tokens by only uploading them once, updating all instances at once
 
-![CLI command](https://github.com/user-attachments/assets/b82e6e42-de36-4545-b484-240936b2fbeb)
+![Screenshot of a terminal displaying output from "kirby alter:generate"](https://github.com/user-attachments/assets/b82e6e42-de36-4545-b484-240936b2fbeb)
 
 #### CLI Arguments
 
