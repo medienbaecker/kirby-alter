@@ -15,7 +15,7 @@ The plugin provides a panel area for reviewing and managing alt texts of images 
 
 ### CLI command
 
-I also included an `alter:generate` [CLI command](https://github.com/getkirby/cli) that uses the [Claude API](https://docs.anthropic.com/en/api/overview) to generate alt texts for the image.
+I also included an `alter:generate` [CLI command](https://github.com/getkirby/cli) that uses the [Claude API](https://docs.anthropic.com/en/api/overview) to generate alt texts for your images.
 
 - Supports multi-language installations and only uploads the image for the default language and then translates the generated alt text to the other languages
 - Detects duplicate images and saves tokens by only uploading them once, updating all instances at once
