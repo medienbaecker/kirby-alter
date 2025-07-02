@@ -5,6 +5,8 @@ A [Kirby](https://getkirby.com/) plugin for generating and reviewing alt texts f
 > [!WARNING]  
 > Use this plugin at your own risk. It was built primarily for my own projects and may not work in yours.
 
+I use some Kirby 5 specific features, but it could potentially work Kirby 4 as well. Please report any issues you encounter.
+
 ## Features
 
 ### Panel view
