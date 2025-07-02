@@ -7,7 +7,10 @@
 					:style="{ visibility: hasAnyChanges ? 'visible' : 'hidden' }">
 					{{ $t('medienbaecker.alter.save') }}
 				</k-button>
-				<k-button v-if="!loading && totalImagesCount > 0" element="span" variant="filled" size="sm"
+				<k-button v-if="!loading && totalImagesCount > 0" element="span" variant="filled" size="sm" icon="edit">
+					{{ `${altTextImagesCount}/${totalImagesCount}` }}
+				</k-button>
+				<k-button v-if="!loading && totalImagesCount > 0" element="span" variant="filled" size="sm" icon="check"
 					:theme="isComplete ? 'positive' : null">
 					{{ `${reviewedImagesCount}/${totalImagesCount}` }}
 				</k-button>
@@ -28,9 +31,11 @@
 		<div v-else>
 			<div v-for="pageGroup in groupedImages" :key="pageGroup.pageId" class="page-group">
 				<div class="page-group__header">
-					<k-link :to="pageGroup.pagePanelUrl" class="page-group__title">
-						<k-headline size="h2">{{ pageGroup.pageTitle }}</k-headline>
-					</k-link>
+					<k-text>
+						<k-link :to="pageGroup.pagePanelUrl" class="page-group__title">
+							<strong>{{ pageGroup.pageTitle }}</strong>
+						</k-link>
+					</k-text>
 					<div class="page-group__badges">
 						<k-button v-if="pageGroup.pageStatus === 'draft'" element="span" variant="filled" size="sm"
 							theme="negative">
@@ -49,14 +54,13 @@
 					<div v-for="image in pageGroup.images" :key="image.id"
 						:class="{ 'alt-review-card--has-changes': currentImages[image.id] && hasChanges(image.id) }"
 						class="alt-review-card">
-						<k-link :to="image.panelUrl" class="alt-review-card__image-link">
-							<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern"
-								ratio="3/2" />
-						</k-link>
+						<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
 
 						<div class="alt-review-card__content">
 							<k-text class="alt-review-card__filename">
-								<strong>{{ image.filename }}</strong>
+								<k-link :to="image.panelUrl" class="alt-review-card__filename-link">
+									<strong>{{ image.filename }}</strong>
+								</k-link>
 							</k-text>
 
 							<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''"
@@ -98,21 +102,26 @@ export default {
 			saving: {},
 			images: [],
 			pagination: { page: 1, pages: 1, total: 0, limit: 100 },
+			totals: { withAltText: 0, reviewed: 0, total: 0 },
 			loading: false,
 		}
 	},
 
 	computed: {
 		reviewedImagesCount() {
-			return Object.values(this.currentImages).filter(img => img.alt_reviewed).length;
+			return this.totals.reviewed;
+		},
+
+		altTextImagesCount() {
+			return this.totals.withAltText;
 		},
 
 		totalImagesCount() {
-			return this.pagination.total;
+			return this.totals.total;
 		},
 
 		isComplete() {
-			return this.pagination.total > 0 && this.reviewedImagesCount === this.pagination.total;
+			return this.totals.total > 0 && this.reviewedImagesCount === this.totals.total;
 		},
 
 		hasAnyChanges() {
@@ -203,6 +212,7 @@ export default {
 
 				this.images = response.images;
 				this.pagination = response.pagination;
+				this.totals = response.totals;
 
 				this.initializeImageData();
 			} catch (error) {
@@ -280,6 +290,28 @@ export default {
 					await this.updateField(imageId, 'alt_reviewed', current.alt_reviewed ? 'true' : '');
 				}
 
+				// Update totals based on changes
+				if (current.alt !== original.alt) {
+					// Alt text changed - update alt text count
+					const hadAltText = original.alt && original.alt.trim() !== '';
+					const hasAltText = current.alt && current.alt.trim() !== '';
+					
+					if (!hadAltText && hasAltText) {
+						this.totals.withAltText++;
+					} else if (hadAltText && !hasAltText) {
+						this.totals.withAltText--;
+					}
+				}
+				
+				if (current.alt_reviewed !== original.alt_reviewed) {
+					// Review status changed - update reviewed count
+					if (current.alt_reviewed) {
+						this.totals.reviewed++;
+					} else {
+						this.totals.reviewed--;
+					}
+				}
+
 				// Update original state to match current
 				this.$set(this.originalImages, imageId, { ...current });
 
@@ -340,6 +372,34 @@ export default {
 </script>
 
 <style scoped>
+.page-group {
+	margin-bottom: 3rem;
+}
+
+.page-group__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1.5rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.page-group__title {
+	text-decoration: none;
+	color: inherit;
+}
+
+.page-group__badges {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.page-group__grid {
+	margin-bottom: 1rem;
+}
+
 .alt-review-card {
 	overflow: hidden;
 	border-radius: var(--rounded);
@@ -358,6 +418,11 @@ export default {
 
 .alt-review-card__filename {
 	margin-bottom: 1rem;
+}
+
+.alt-review-card__filename-link {
+	text-decoration: none;
+	color: inherit;
 }
 
 .alt-review-card__alt-input {
@@ -383,42 +448,5 @@ export default {
 	font-size: 0.875rem;
 	color: var(--color-text);
 	cursor: pointer;
-}
-
-
-
-.alt-review-card__image-link {
-	display: block;
-}
-
-.page-group {
-	margin-bottom: 3rem;
-}
-
-.page-group__header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 1.5rem;
-	padding-bottom: 0.75rem;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.page-group__title {
-	text-decoration: none;
-	color: inherit;
-}
-
-.page-group__title:hover {
-	text-decoration: underline;
-}
-
-.page-group__badges {
-	display: flex;
-	gap: var(--spacing-2);
-}
-
-.page-group__grid {
-	margin-bottom: 1rem;
 }
 </style>

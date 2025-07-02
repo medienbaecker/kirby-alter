@@ -82,6 +82,19 @@ Kirby::plugin('medienbaecker/alter', [
 					}
 
 					$totalImages = count($allImages);
+					
+					// Calculate totals for header badges
+					$totalWithAltText = 0;
+					$totalReviewed = 0;
+					foreach ($allImages as $imageData) {
+						if (!empty($imageData['alt']) && trim($imageData['alt']) !== '') {
+							$totalWithAltText++;
+						}
+						if ($imageData['alt_reviewed']) {
+							$totalReviewed++;
+						}
+					}
+					
 					$totalPages = ceil($totalImages / $limit);
 					$offset = ($page - 1) * $limit;
 					$paginatedImages = array_slice($allImages, $offset, $limit);
@@ -95,6 +108,11 @@ Kirby::plugin('medienbaecker/alter', [
 							'limit' => $limit,
 							'start' => $offset + 1,
 							'end' => min($offset + $limit, $totalImages)
+						],
+						'totals' => [
+							'withAltText' => $totalWithAltText,
+							'reviewed' => $totalReviewed,
+							'total' => $totalImages
 						]
 					];
 				}

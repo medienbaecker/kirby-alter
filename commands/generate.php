@@ -182,6 +182,7 @@ class AltTextGenerator
 					$imagesByHash[$hash] = [
 						'instances' => [],
 						'needsProcessing' => false,
+						'firstOrder' => $totalScanned, // Track order of first occurrence
 					];
 				}
 
@@ -264,6 +265,11 @@ class AltTextGenerator
 		$processedFiles = 0;
 		$errors = 0;
 		$uniqueImagesProcessed = 0;
+
+		// Sort hash groups by first occurrence order to match panel view
+		uasort($imagesByHash, function ($a, $b) {
+			return $a['firstOrder'] - $b['firstOrder'];
+		});
 
 		// Process by language to avoid immutable object issues
 		foreach ($languages as $language) {
