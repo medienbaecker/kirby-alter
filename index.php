@@ -49,7 +49,7 @@ Kirby::plugin('medienbaecker/alter', [
 
 					// Collect all images
 					$allImages = [];
-					$pages = site()->index();
+					$pages = site()->index(true);
 
 					foreach ($pages as $sitePage) {
 						if ($sitePage->hasImages()) {
@@ -74,6 +74,7 @@ Kirby::plugin('medienbaecker/alter', [
 									'pageId' => $sitePage->id(),
 									'pagePanelUrl' => $sitePage->panel()->url(),
 									'pageSort' => $sitePage->num(),
+									'pageStatus' => $sitePage->status(),
 									'language' => $languageCode,
 								];
 							}

@@ -31,11 +31,18 @@
 					<k-link :to="pageGroup.pagePanelUrl" class="page-group__title">
 						<k-headline size="h2">{{ pageGroup.pageTitle }}</k-headline>
 					</k-link>
-					<k-badge>
-						{{ pageGroup.images.length }} {{ pageGroup.images.length === 1 ? $t('medienbaecker.alter.image')
-							:
-							$t('medienbaecker.alter.images') }}
-					</k-badge>
+					<div class="page-group__badges">
+						<k-button v-if="pageGroup.pageStatus === 'draft'" element="span" variant="filled" size="sm"
+							theme="negative">
+							{{ $t('page.status.draft') }}
+						</k-button>
+						<k-button element="span" variant="filled" size="sm">
+							{{ pageGroup.images.length }} {{ pageGroup.images.length === 1 ?
+								$t('medienbaecker.alter.image')
+								:
+								$t('medienbaecker.alter.images') }}
+						</k-button>
+					</div>
 				</div>
 
 				<k-grid style="--columns: 2; gap: 1rem;" class="page-group__grid">
@@ -129,6 +136,7 @@ export default {
 						pageId: image.pageId,
 						pagePanelUrl: image.pagePanelUrl,
 						pageSort: image.pageSort,
+						pageStatus: image.pageStatus,
 						images: []
 					};
 				}
@@ -405,6 +413,10 @@ export default {
 	text-decoration: underline;
 }
 
+.page-group__badges {
+	display: flex;
+	gap: var(--spacing-2);
+}
 
 .page-group__grid {
 	margin-bottom: 1rem;
