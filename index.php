@@ -62,6 +62,26 @@ Kirby::plugin('medienbaecker/alter', [
 									$altText = $image->alt()->value() ?? '';
 								}
 
+								// Check if any parent pages are drafts
+								$hasParentDrafts = $sitePage->parents()->filter(fn($p) => $p->isDraft())->isNotEmpty();
+								
+								// Build breadcrumb path and sort key
+								$parents = $sitePage->parents()->flip();
+								$parentTitles = $parents->pluck('title');
+								$sortKey = '';
+								
+								// Build hierarchical sort key with parent sort numbers
+								foreach ($parents as $parent) {
+									$sortKey .= sprintf('%06d-', $parent->num() ?? 999999);
+								}
+								$sortKey .= sprintf('%06d', $sitePage->num() ?? 999999);
+								
+								if (count($parentTitles) > 0) {
+									$breadcrumbPath = implode(' → ', $parentTitles) . ' → ' . $sitePage->title()->value();
+								} else {
+									$breadcrumbPath = $sitePage->title()->value();
+								}
+
 								$allImages[] = [
 									'id' => $image->id(),
 									'url' => $image->url(),
@@ -75,6 +95,9 @@ Kirby::plugin('medienbaecker/alter', [
 									'pagePanelUrl' => $sitePage->panel()->url(),
 									'pageSort' => $sitePage->num(),
 									'pageStatus' => $sitePage->status(),
+									'hasParentDrafts' => $hasParentDrafts,
+									'breadcrumbPath' => $breadcrumbPath,
+									'sortKey' => $sortKey,
 									'language' => $languageCode,
 								];
 							}

@@ -33,11 +33,11 @@
 				<div class="page-group__header">
 					<k-text>
 						<k-link :to="pageGroup.pagePanelUrl" class="page-group__title">
-							<strong>{{ pageGroup.pageTitle }}</strong>
+							<strong>{{ pageGroup.breadcrumbPath }}</strong>
 						</k-link>
 					</k-text>
 					<div class="page-group__badges">
-						<k-button v-if="pageGroup.pageStatus === 'draft'" element="span" variant="filled" size="sm"
+						<k-button v-if="pageGroup.pageStatus === 'draft' || pageGroup.hasParentDrafts" element="span" variant="filled" size="sm"
 							theme="negative">
 							{{ $t('page.status.draft') }}
 						</k-button>
@@ -146,23 +146,18 @@ export default {
 						pagePanelUrl: image.pagePanelUrl,
 						pageSort: image.pageSort,
 						pageStatus: image.pageStatus,
+						hasParentDrafts: image.hasParentDrafts,
+						breadcrumbPath: image.breadcrumbPath,
+						sortKey: image.sortKey,
 						images: []
 					};
 				}
 				groups[pageId].images.push(image);
 			});
 
-			// Convert to array and sort by page number, then by title
+			// Sort by hierarchical sort key to respect page numbers
 			return Object.values(groups).sort((a, b) => {
-				// Sort by page number first (if both have numbers)
-				if (a.pageSort !== null && b.pageSort !== null) {
-					return a.pageSort - b.pageSort;
-				}
-				// If one has no number, put numbered pages first
-				if (a.pageSort !== null && b.pageSort === null) return -1;
-				if (a.pageSort === null && b.pageSort !== null) return 1;
-				// If both have no numbers, sort alphabetically
-				return a.pageTitle.localeCompare(b.pageTitle);
+				return a.sortKey.localeCompare(b.sortKey);
 			});
 		}
 	},
