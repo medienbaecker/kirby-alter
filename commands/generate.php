@@ -11,7 +11,6 @@ return [
 			'prefix' => 'p',
 			'longPrefix' => 'prompt',
 			'description' => 'Custom prompt for generating alt texts',
-			'defaultValue' => 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc. Return the alt text only, without any additional text or formatting.',
 		],
 		'overwrite' => [
 			'longPrefix' => 'overwrite',
@@ -56,8 +55,12 @@ class AltTextGenerator
 	public function __construct(CLI $cli)
 	{
 		$this->cli = $cli;
+		
+		// Use CLI prompt if provided, otherwise use config option
+		$prompt = $cli->arg('prompt') ?: kirby()->option('medienbaecker.alter.prompt');
+		
 		$this->config = [
-			'prompt' => $cli->arg('prompt'),
+			'prompt' => $prompt,
 			'overwrite' => $cli->arg('overwrite'),
 			'dryRun' => $cli->arg('dry-run'),
 			'verbose' => $cli->arg('verbose'),
@@ -87,10 +90,6 @@ class AltTextGenerator
 	{
 		if (!$this->config['apiKey']) {
 			throw new \Exception('Claude API key is required');
-		}
-
-		if (strlen($this->config['prompt']) < 10) {
-			throw new \Exception('Prompt must be at least 10 characters long');
 		}
 	}
 
@@ -440,8 +439,15 @@ class AltTextGenerator
 		$imageData = base64_encode($imageContent);
 		$mimeType = $image->mime();
 
-		// Add language specification to prompt
+		// Get prompt - handle callback if provided
 		$prompt = $this->config['prompt'];
+		
+		// If prompt is callable, invoke it with the image
+		if (is_callable($prompt)) {
+			$prompt = $prompt($image);
+		}
+		
+		// Add language specification to prompt
 		if ($language) {
 			$prompt .= ' Write the alt text in ' . $language->name() . '.';
 		}

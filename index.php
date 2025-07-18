@@ -5,6 +5,14 @@ use Kirby\Cms\App as Kirby;
 Kirby::plugin('medienbaecker/alter', [
 	'options' => [
 		'apiKey' => null,
+		'prompt' => function ($file) {
+			$prompt = 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc.';
+			$prompt .= ' The image is on a page called "' . $file->page()->title() . '".';
+			$prompt .= ' The site is called "' . $file->site()->title() . '".';
+			$prompt .= ' Return the alt text only, without any additional text or formatting.';
+
+			return $prompt;
+		},
 	],
 	'translations' => [
 		'de' => require_once __DIR__ . '/languages/de.php',
@@ -64,18 +72,18 @@ Kirby::plugin('medienbaecker/alter', [
 
 								// Check if any parent pages are drafts
 								$hasParentDrafts = $sitePage->parents()->filter(fn($p) => $p->isDraft())->isNotEmpty();
-								
+
 								// Build breadcrumb path and sort key
 								$parents = $sitePage->parents()->flip();
 								$parentTitles = $parents->pluck('title');
 								$sortKey = '';
-								
+
 								// Build hierarchical sort key with parent sort numbers
 								foreach ($parents as $parent) {
 									$sortKey .= sprintf('%06d-', $parent->num() ?? 999999);
 								}
 								$sortKey .= sprintf('%06d', $sitePage->num() ?? 999999);
-								
+
 								if (count($parentTitles) > 0) {
 									$breadcrumbPath = implode(' → ', $parentTitles) . ' → ' . $sitePage->title()->value();
 								} else {
@@ -105,7 +113,7 @@ Kirby::plugin('medienbaecker/alter', [
 					}
 
 					$totalImages = count($allImages);
-					
+
 					// Calculate totals for header badges
 					$totalWithAltText = 0;
 					$totalReviewed = 0;
@@ -117,7 +125,7 @@ Kirby::plugin('medienbaecker/alter', [
 							$totalReviewed++;
 						}
 					}
-					
+
 					$totalPages = ceil($totalImages / $limit);
 					$offset = ($page - 1) * $limit;
 					$paginatedImages = array_slice($allImages, $offset, $limit);
