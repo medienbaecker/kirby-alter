@@ -26,7 +26,7 @@ I also included an `alter:generate` [CLI command](https://github.com/getkirby/cl
 
 #### CLI Arguments
 
-- `--prompt` / `-p` - Custom prompt for generating alt texts (default: `"You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc. Return the alt text only, without any additional text or formatting."`)
+- `--prompt` / `-p` - Custom prompt for generating alt texts (overrides the configured prompt)
 - `--overwrite` - Overwrite existing alt texts (default: `false`)
 - `--dry-run` - Preview changes without updating files (default: `false`)
 - `--verbose` - Show detailed progress information (default: `false`)
@@ -57,12 +57,40 @@ kirby alter:generate --page "blog/my-article" --overwrite
 return [
 	'medienbaecker.alter' => [
 		'apiKey' => 'your-claude-api-key', // Set your Claude API key here
+		'prompt' => 'Your custom prompt', // Optional: Custom prompt for alt text generation
 	]
 ];
 
 ```
 
 Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
+
+### Custom Prompt Configuration
+
+The prompt option can be either a string or a callback function that receives the image file as a parameter. The default is:
+
+```php
+'prompt' => function ($file) {
+	$prompt = 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc.';
+	$prompt .= ' The image is on a page called "' . $file->page()->title() . '".';
+	$prompt .= ' The site is called "' . $file->site()->title() . '".';
+	$prompt .= ' Return the alt text only, without any additional text or formatting.';
+
+	return $prompt;
+}
+```
+
+You can override this with your own string or callback:
+
+```php
+// Simple string prompt
+'prompt' => 'Describe this image concisely for accessibility purposes.'
+
+// Custom callback with different context
+'prompt' => function($file) {
+	return 'Describe this image. Context: "' . $file->page()->text()->excerpt(100) . '"';
+}
+```
 
 ## Installation
 
