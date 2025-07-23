@@ -93,6 +93,7 @@ Kirby::plugin('medienbaecker/alter', [
 								$allImages[] = [
 									'id' => $image->id(),
 									'url' => $image->url(),
+									'thumbUrl' => $image->resize(500, 500)->url(),
 									'filename' => $image->filename(),
 									'alt' => $altText,
 									'alt_reviewed' => $image->alt_reviewed()->toBool(),

@@ -55,10 +55,10 @@ class AltTextGenerator
 	public function __construct(CLI $cli)
 	{
 		$this->cli = $cli;
-		
+
 		// Use CLI prompt if provided, otherwise use config option
 		$prompt = $cli->arg('prompt') ?: kirby()->option('medienbaecker.alter.prompt');
-		
+
 		$this->config = [
 			'prompt' => $prompt,
 			'overwrite' => $cli->arg('overwrite'),
@@ -428,7 +428,7 @@ class AltTextGenerator
 			throw new \Exception('Image file not found: ' . $image->root());
 		}
 
-		$resized = $image->resize(500);
+		$resized = $image->resize(500, 500);
 		$resized->publish();
 		$imageContent = $resized->read();
 
@@ -441,12 +441,12 @@ class AltTextGenerator
 
 		// Get prompt - handle callback if provided
 		$prompt = $this->config['prompt'];
-		
+
 		// If prompt is callable, invoke it with the image
 		if (is_callable($prompt)) {
 			$prompt = $prompt($image);
 		}
-		
+
 		// Add language specification to prompt
 		if ($language) {
 			$prompt .= ' Write the alt text in ' . $language->name() . '.';

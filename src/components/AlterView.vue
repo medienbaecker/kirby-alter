@@ -37,8 +37,8 @@
 						</k-link>
 					</k-text>
 					<div class="page-group__badges">
-						<k-button v-if="pageGroup.pageStatus === 'draft' || pageGroup.hasParentDrafts" element="span" variant="filled" size="sm"
-							theme="negative">
+						<k-button v-if="pageGroup.pageStatus === 'draft' || pageGroup.hasParentDrafts" element="span"
+							variant="filled" size="sm" theme="negative">
 							{{ $t('page.status.draft') }}
 						</k-button>
 						<k-button element="span" variant="filled" size="sm">
@@ -54,7 +54,8 @@
 					<div v-for="image in pageGroup.images" :key="image.id"
 						:class="{ 'alt-review-card--has-changes': currentImages[image.id] && hasChanges(image.id) }"
 						class="alt-review-card">
-						<k-image-frame :src="image.url" :alt="getImageData(image.id).alt" back="pattern" ratio="3/2" />
+						<k-image-frame :src="image.thumbUrl" :alt="getImageData(image.id).alt" back="pattern"
+							ratio="3/2" />
 
 						<div class="alt-review-card__content">
 							<k-text class="alt-review-card__filename">
@@ -290,14 +291,14 @@ export default {
 					// Alt text changed - update alt text count
 					const hadAltText = original.alt && original.alt.trim() !== '';
 					const hasAltText = current.alt && current.alt.trim() !== '';
-					
+
 					if (!hadAltText && hasAltText) {
 						this.totals.withAltText++;
 					} else if (hadAltText && !hasAltText) {
 						this.totals.withAltText--;
 					}
 				}
-				
+
 				if (current.alt_reviewed !== original.alt_reviewed) {
 					// Review status changed - update reviewed count
 					if (current.alt_reviewed) {
