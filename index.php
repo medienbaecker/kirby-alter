@@ -73,9 +73,8 @@ Kirby::plugin('medienbaecker/alter', [
 								// Check if any parent pages are drafts
 								$hasParentDrafts = $sitePage->parents()->filter(fn($p) => $p->isDraft())->isNotEmpty();
 
-								// Build breadcrumb path and sort key
+								// Build breadcrumbs and sort key
 								$parents = $sitePage->parents()->flip();
-								$parentTitles = $parents->pluck('title');
 								$sortKey = '';
 
 								// Build hierarchical sort key with parent sort numbers
@@ -84,11 +83,18 @@ Kirby::plugin('medienbaecker/alter', [
 								}
 								$sortKey .= sprintf('%06d', $sitePage->num() ?? 999999);
 
-								if (count($parentTitles) > 0) {
-									$breadcrumbPath = implode(' → ', $parentTitles) . ' → ' . $sitePage->title()->value();
-								} else {
-									$breadcrumbPath = $sitePage->title()->value();
+								// Build breadcrumbs array for clickable navigation
+								$breadcrumbs = [];
+								foreach ($parents as $parent) {
+									$breadcrumbs[] = [
+										'title' => $parent->title()->value(),
+										'panelUrl' => $parent->panel()->url()
+									];
 								}
+								$breadcrumbs[] = [
+									'title' => $sitePage->title()->value(),
+									'panelUrl' => $sitePage->panel()->url()
+								];
 
 								$allImages[] = [
 									'id' => $image->id(),
@@ -105,7 +111,7 @@ Kirby::plugin('medienbaecker/alter', [
 									'pageSort' => $sitePage->num(),
 									'pageStatus' => $sitePage->status(),
 									'hasParentDrafts' => $hasParentDrafts,
-									'breadcrumbPath' => $breadcrumbPath,
+									'breadcrumbs' => $breadcrumbs,
 									'sortKey' => $sortKey,
 									'language' => $languageCode,
 								];

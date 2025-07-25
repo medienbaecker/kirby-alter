@@ -1,11 +1,11 @@
 <template>
 	<k-panel-inside class="k-alter-view">
 		<k-header>
-			{{ $t('medienbaecker.alter.title') }}
+			{{ $t("medienbaecker.alter.title") }}
 			<template #buttons>
 				<k-button @click="saveAllChanges" icon="check" theme="orange" variant="filled" size="sm"
 					:style="{ visibility: hasAnyChanges ? 'visible' : 'hidden' }">
-					{{ $t('medienbaecker.alter.save') }}
+					{{ $t("medienbaecker.alter.save") }}
 				</k-button>
 				<k-button v-if="!loading && totalImagesCount > 0" element="span" variant="filled" size="sm" icon="edit">
 					{{ `${altTextImagesCount}/${totalImagesCount}` }}
@@ -25,35 +25,42 @@
 		</div>
 
 		<div v-else-if="images.length === 0" class="k-empty">
-			<k-text>{{ $t('medienbaecker.alter.noImages') }}</k-text>
+			<k-text>{{ $t("medienbaecker.alter.noImages") }}</k-text>
 		</div>
 
 		<div v-else>
 			<div v-for="pageGroup in groupedImages" :key="pageGroup.pageId" class="page-group">
 				<div class="page-group__header">
-					<k-text>
-						<k-link :to="pageGroup.pagePanelUrl" class="page-group__title">
-							<strong>{{ pageGroup.breadcrumbPath }}</strong>
-						</k-link>
+					<k-text class="page-group__breadcrumb">
+						<template v-for="(crumb, index) in pageGroup.breadcrumbs" :key="index">
+							<k-link :to="crumb.panelUrl" class="page-group__breadcrumb-link">
+								<strong>{{ crumb.title }}</strong>
+							</k-link>
+							<span v-if="index < pageGroup.breadcrumbs.length - 1"> → </span>
+						</template>
 					</k-text>
 					<div class="page-group__badges">
-						<k-button v-if="pageGroup.pageStatus === 'draft' || pageGroup.hasParentDrafts" element="span"
-							variant="filled" size="sm" theme="negative">
-							{{ $t('page.status.draft') }}
+						<k-button v-if="
+							pageGroup.pageStatus === 'draft' || pageGroup.hasParentDrafts
+						" element="span" variant="filled" size="sm" theme="negative">
+							{{ $t("page.status.draft") }}
 						</k-button>
 						<k-button element="span" variant="filled" size="sm">
-							{{ pageGroup.images.length }} {{ pageGroup.images.length === 1 ?
-								$t('medienbaecker.alter.image')
-								:
-								$t('medienbaecker.alter.images') }}
+							{{ pageGroup.images.length }}
+							{{
+								pageGroup.images.length === 1
+									? $t("medienbaecker.alter.image")
+									: $t("medienbaecker.alter.images")
+							}}
 						</k-button>
 					</div>
 				</div>
 
-				<k-grid style="--columns: 2; gap: 1rem;" class="page-group__grid">
-					<div v-for="image in pageGroup.images" :key="image.id"
-						:class="{ 'alt-review-card--has-changes': currentImages[image.id] && hasChanges(image.id) }"
-						class="alt-review-card">
+				<k-grid style="--columns: 2; gap: 1rem" class="page-group__grid">
+					<div v-for="image in pageGroup.images" :key="image.id" :class="{
+						'alt-review-card--has-changes':
+							currentImages[image.id] && hasChanges(image.id),
+					}" class="alt-review-card">
 						<k-image-frame :src="image.thumbUrl" :alt="getImageData(image.id).alt" back="pattern"
 							ratio="3/2" />
 
@@ -64,16 +71,22 @@
 								</k-link>
 							</k-text>
 
-							<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''"
-								@input="currentImages[image.id] && (currentImages[image.id].alt = $event)"
-								:placeholder="$t('medienbaecker.alter.noAltText')" class="alt-review-card__alt-input" />
+							<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''
+								" @input="
+									currentImages[image.id] &&
+									(currentImages[image.id].alt = $event)
+									" :placeholder="$t('medienbaecker.alter.noAltText')" class="alt-review-card__alt-input" />
 
 							<label class="alt-review-card__checkbox">
-								<input type="checkbox" :checked="getImageData(image.id).alt_reviewed"
-									@change="$set(currentImages[image.id], 'alt_reviewed', $event.target.checked)"
-									class="alt-review-card__checkbox-input" />
+								<input type="checkbox" :checked="getImageData(image.id).alt_reviewed" @change="
+									$set(
+										currentImages[image.id],
+										'alt_reviewed',
+										$event.target.checked
+									)
+									" class="alt-review-card__checkbox-input" />
 								<span class="alt-review-card__checkbox-label">{{
-									$t('medienbaecker.alter.reviewed')
+									$t("medienbaecker.alter.reviewed")
 								}}</span>
 							</label>
 						</div>
@@ -82,7 +95,7 @@
 			</div>
 
 			<k-pagination v-if="pagination.total > pagination.limit" :page="pagination.page" :total="pagination.total"
-				:limit="pagination.limit" :details="true" @paginate="onPageChange" style="margin-top: 2rem;" />
+				:limit="pagination.limit" :details="true" @paginate="onPageChange" style="margin-top: 2rem" />
 		</div>
 	</k-panel-inside>
 </template>
@@ -92,8 +105,8 @@ export default {
 	props: {
 		page: {
 			type: Number,
-			default: 1
-		}
+			default: 1,
+		},
 	},
 
 	data() {
@@ -105,7 +118,7 @@ export default {
 			pagination: { page: 1, pages: 1, total: 0, limit: 100 },
 			totals: { withAltText: 0, reviewed: 0, total: 0 },
 			loading: false,
-		}
+		};
 	},
 
 	computed: {
@@ -122,11 +135,15 @@ export default {
 		},
 
 		isComplete() {
-			return this.totals.total > 0 && this.reviewedImagesCount === this.totals.total;
+			return (
+				this.totals.total > 0 && this.reviewedImagesCount === this.totals.total
+			);
 		},
 
 		hasAnyChanges() {
-			return Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
+			return Object.keys(this.currentImages).some((imageId) =>
+				this.hasChanges(imageId)
+			);
 		},
 
 		currentLanguage() {
@@ -138,7 +155,7 @@ export default {
 			// Group images by their parent page
 			const groups = {};
 
-			this.images.forEach(image => {
+			this.images.forEach((image) => {
 				const pageId = image.pageId;
 				if (!groups[pageId]) {
 					groups[pageId] = {
@@ -148,9 +165,9 @@ export default {
 						pageSort: image.pageSort,
 						pageStatus: image.pageStatus,
 						hasParentDrafts: image.hasParentDrafts,
-						breadcrumbPath: image.breadcrumbPath,
+						breadcrumbs: image.breadcrumbs,
 						sortKey: image.sortKey,
-						images: []
+						images: [],
 					};
 				}
 				groups[pageId].images.push(image);
@@ -160,7 +177,7 @@ export default {
 			return Object.values(groups).sort((a, b) => {
 				return a.sortKey.localeCompare(b.sortKey);
 			});
-		}
+		},
 	},
 
 	watch: {
@@ -172,17 +189,19 @@ export default {
 		currentLanguage(newLanguage, oldLanguage) {
 			// Reload images when language changes
 			if (newLanguage !== oldLanguage && oldLanguage !== undefined) {
-				const hasUnsaved = Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
+				const hasUnsaved = Object.keys(this.currentImages).some((imageId) =>
+					this.hasChanges(imageId)
+				);
 
 				if (hasUnsaved) {
-					if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
+					if (!confirm(this.$t("medienbaecker.alter.unsavedChanges"))) {
 						return;
 					}
 				}
 
 				this.loadImages(this.page);
 			}
-		}
+		},
 	},
 
 	created() {
@@ -202,8 +221,8 @@ export default {
 		async loadImages(page = 1) {
 			this.loading = true;
 			try {
-				const response = await this.$api.get('alter/images', {
-					page: page
+				const response = await this.$api.get("alter/images", {
+					page: page,
 				});
 
 				this.images = response.images;
@@ -212,8 +231,8 @@ export default {
 
 				this.initializeImageData();
 			} catch (error) {
-				console.error('Failed to load images:', error);
-				this.$panel.notification.error('Failed to load images');
+				console.error("Failed to load images:", error);
+				this.$panel.notification.error("Failed to load images");
 			} finally {
 				this.loading = false;
 			}
@@ -226,10 +245,10 @@ export default {
 			this.saving = {};
 
 			// Store original + current state for current page images
-			this.images.forEach(image => {
+			this.images.forEach((image) => {
 				const imageData = {
 					alt: image.alt,
-					alt_reviewed: image.alt_reviewed
+					alt_reviewed: image.alt_reviewed,
 				};
 
 				this.$set(this.originalImages, image.id, { ...imageData });
@@ -239,10 +258,12 @@ export default {
 		},
 
 		onPageChange(paginationData) {
-			const hasUnsaved = Object.keys(this.currentImages).some(imageId => this.hasChanges(imageId));
+			const hasUnsaved = Object.keys(this.currentImages).some((imageId) =>
+				this.hasChanges(imageId)
+			);
 
 			if (hasUnsaved) {
-				if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
+				if (!confirm(this.$t("medienbaecker.alter.unsavedChanges"))) {
 					return;
 				}
 			}
@@ -254,9 +275,8 @@ export default {
 			this.$go(`/alter/${page}`);
 		},
 
-
 		getImageData(imageId) {
-			return this.currentImages[imageId] || { alt: '', alt_reviewed: false };
+			return this.currentImages[imageId] || { alt: "", alt_reviewed: false };
 		},
 
 		hasChanges(imageId) {
@@ -265,8 +285,10 @@ export default {
 
 			if (!current || !original) return false;
 
-			return current.alt !== original.alt ||
-				current.alt_reviewed !== original.alt_reviewed;
+			return (
+				current.alt !== original.alt ||
+				current.alt_reviewed !== original.alt_reviewed
+			);
 		},
 
 		async saveImage(imageId) {
@@ -278,19 +300,23 @@ export default {
 
 				// Save alt text if changed
 				if (current.alt !== original.alt) {
-					await this.updateField(imageId, 'alt', current.alt);
+					await this.updateField(imageId, "alt", current.alt);
 				}
 
 				// Save review status if changed
 				if (current.alt_reviewed !== original.alt_reviewed) {
-					await this.updateField(imageId, 'alt_reviewed', current.alt_reviewed ? 'true' : '');
+					await this.updateField(
+						imageId,
+						"alt_reviewed",
+						current.alt_reviewed ? "true" : ""
+					);
 				}
 
 				// Update totals based on changes
 				if (current.alt !== original.alt) {
 					// Alt text changed - update alt text count
-					const hadAltText = original.alt && original.alt.trim() !== '';
-					const hasAltText = current.alt && current.alt.trim() !== '';
+					const hadAltText = original.alt && original.alt.trim() !== "";
+					const hasAltText = current.alt && current.alt.trim() !== "";
 
 					if (!hadAltText && hasAltText) {
 						this.totals.withAltText++;
@@ -312,9 +338,8 @@ export default {
 				this.$set(this.originalImages, imageId, { ...current });
 
 				this.$panel.notification.success();
-
 			} catch (error) {
-				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
+				this.$panel.notification.error(this.$t("medienbaecker.alter.error"));
 				console.error(error);
 			} finally {
 				this.$set(this.saving, imageId, false);
@@ -322,10 +347,10 @@ export default {
 		},
 
 		async updateField(imageId, field, value) {
-			const response = await this.$api.post('alter/update', {
+			const response = await this.$api.post("alter/update", {
 				imageId: imageId,
 				field: field,
-				value: value
+				value: value,
 			});
 
 			if (response.error) {
@@ -335,9 +360,6 @@ export default {
 			return response;
 		},
 
-
-
-
 		saveAllChanges(event) {
 			if (event) {
 				event.preventDefault();
@@ -346,7 +368,7 @@ export default {
 			const changedImages = [];
 
 			// Find all images with changes
-			Object.keys(this.currentImages).forEach(imageId => {
+			Object.keys(this.currentImages).forEach((imageId) => {
 				if (this.hasChanges(imageId)) {
 					changedImages.push(imageId);
 				}
@@ -357,14 +379,12 @@ export default {
 			}
 
 			// Trigger save for each changed image
-			changedImages.forEach(imageId => {
+			changedImages.forEach((imageId) => {
 				this.saveImage(imageId);
 			});
 		},
-
-
-	}
-}
+	},
+};
 </script>
 
 <style scoped>
@@ -381,9 +401,13 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
-.page-group__title {
+.page-group__breadcrumb {
+	color: var(--color-text-dimmed);
+}
+
+.page-group__breadcrumb-link {
 	text-decoration: none;
-	color: inherit;
+	color: var(--color-text);
 }
 
 .page-group__badges {
