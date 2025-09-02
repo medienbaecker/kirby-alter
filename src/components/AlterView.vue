@@ -71,11 +71,10 @@
 								</k-link>
 							</k-text>
 
-							<k-text-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''
-								" @input="
-									currentImages[image.id] &&
-									(currentImages[image.id].alt = $event)
-									" :placeholder="$t('medienbaecker.alter.noAltText')" class="alt-review-card__alt-input" />
+							<k-textarea-field :value="currentImages[image.id] ? currentImages[image.id].alt : ''
+								" @input="onAltTextInput(image.id, $event)" @keydown.native="onAltTextKeydown"
+								:placeholder="$t('medienbaecker.alter.noAltText')" :buttons="false"
+								class="alt-review-card__alt-input" />
 
 							<label class="alt-review-card__checkbox">
 								<input type="checkbox" :checked="getImageData(image.id).alt_reviewed" @change="
@@ -218,6 +217,21 @@ export default {
 	},
 
 	methods: {
+		onAltTextInput(imageId, value) {
+			// Strip newlines
+			const sanitizedValue = value.replace(/[\r\n]+/g, ' ').trim();
+			if (this.currentImages[imageId]) {
+				this.currentImages[imageId].alt = sanitizedValue;
+			}
+		},
+
+		onAltTextKeydown(event) {
+			// Prevent Enter key from creating newlines
+			if (event.key === 'Enter') {
+				event.preventDefault();
+			}
+		},
+
 		async loadImages(page = 1) {
 			this.loading = true;
 			try {
