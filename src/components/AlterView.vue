@@ -455,12 +455,18 @@ export default {
 }
 
 .alt-review-card__filename-link {
+	display: block;
 	text-decoration: none;
 	color: inherit;
+	white-space: nowrap;
+	overflow-x: clip;
+	text-overflow: ellipsis;
+	min-width: 0;
 }
 
 .alt-review-card__alt-input {
 	margin-bottom: 1rem;
+	--textarea-size: var(--input-height);
 }
 
 .alt-review-card__checkbox {

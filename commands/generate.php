@@ -428,7 +428,11 @@ class AltTextGenerator
 			throw new \Exception('Image file not found: ' . $image->root());
 		}
 
-		$resized = $image->resize(500, 500);
+		$resized = $image->thumb([
+			'width' => 500,
+			'height' => 500,
+			'format' => false, // Keep original format
+		]);
 		$resized->publish();
 		$imageContent = $resized->read();
 
