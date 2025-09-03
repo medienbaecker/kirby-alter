@@ -49,6 +49,7 @@ Kirby::plugin('medienbaecker/alter', [
 				'action' => function () {
 					$request = kirby()->request();
 					$page = (int)$request->get('page', 1);
+					$filter = $request->get('filter', 'all');
 					$limit = 100;
 
 					// Get current language from panel
@@ -119,9 +120,34 @@ Kirby::plugin('medienbaecker/alter', [
 						}
 					}
 
-					$totalImages = count($allImages);
+					// Store original total before filtering
+					$originalTotalImages = count($allImages);
 
-					// Calculate totals for header badges
+					// Apply filter
+					$filteredImages = $allImages;
+					if ($filter === 'with_alt') {
+						$filteredImages = array_filter($allImages, function($imageData) {
+							return !empty($imageData['alt']) && trim($imageData['alt']) !== '';
+						});
+					} elseif ($filter === 'without_alt') {
+						$filteredImages = array_filter($allImages, function($imageData) {
+							return empty($imageData['alt']) || trim($imageData['alt']) === '';
+						});
+					} elseif ($filter === 'reviewed') {
+						$filteredImages = array_filter($allImages, function($imageData) {
+							return $imageData['alt_reviewed'] === true;
+						});
+					} elseif ($filter === 'unreviewed') {
+						$filteredImages = array_filter($allImages, function($imageData) {
+							return $imageData['alt_reviewed'] === false;
+						});
+					}
+					
+					// Re-index filtered array
+					$filteredImages = array_values($filteredImages);
+					$filteredTotalImages = count($filteredImages);
+
+					// Calculate totals for header badges (always based on all images)
 					$totalWithAltText = 0;
 					$totalReviewed = 0;
 					foreach ($allImages as $imageData) {
@@ -133,24 +159,24 @@ Kirby::plugin('medienbaecker/alter', [
 						}
 					}
 
-					$totalPages = ceil($totalImages / $limit);
+					$totalPages = ceil($filteredTotalImages / $limit);
 					$offset = ($page - 1) * $limit;
-					$paginatedImages = array_slice($allImages, $offset, $limit);
+					$paginatedImages = array_slice($filteredImages, $offset, $limit);
 
 					return [
 						'images' => $paginatedImages,
 						'pagination' => [
 							'page' => (int)$page,
 							'pages' => $totalPages,
-							'total' => $totalImages,
+							'total' => $filteredTotalImages,
 							'limit' => $limit,
 							'start' => $offset + 1,
-							'end' => min($offset + $limit, $totalImages)
+							'end' => min($offset + $limit, $filteredTotalImages)
 						],
 						'totals' => [
 							'withAltText' => $totalWithAltText,
 							'reviewed' => $totalReviewed,
-							'total' => $totalImages
+							'total' => $originalTotalImages
 						]
 					];
 				}

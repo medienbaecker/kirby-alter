@@ -20,12 +20,18 @@
 			</template>
 		</k-header>
 
+		<div class="k-alter-filter">
+			<k-select-field :label="$t('medienbaecker.alter.filter.label')" :options="filterOptions" :value="filterMode"
+				@input="onFilterChange" :placeholder="$t('medienbaecker.alter.filter.all')"
+				class="k-alter-filter__select" />
+		</div>
+
 		<div v-if="loading" class="k-loader">
 			<k-loader />
 		</div>
 
 		<div v-else-if="images.length === 0" class="k-empty">
-			<k-text>{{ $t("medienbaecker.alter.noImages") }}</k-text>
+			<k-text>{{ emptyStateMessage }}</k-text>
 		</div>
 
 		<div v-else>
@@ -117,6 +123,7 @@ export default {
 			pagination: { page: 1, pages: 1, total: 0, limit: 100 },
 			totals: { withAltText: 0, reviewed: 0, total: 0 },
 			loading: false,
+			filterMode: null,
 		};
 	},
 
@@ -148,6 +155,31 @@ export default {
 		currentLanguage() {
 			// Get current language from panel
 			return this.$panel.language ? this.$panel.language.code : null;
+		},
+
+		filterOptions() {
+			return [
+				{
+					text: this.$t('medienbaecker.alter.filter.with_alt'),
+					value: 'with_alt'
+				},
+				{
+					text: this.$t('medienbaecker.alter.filter.without_alt'),
+					value: 'without_alt'
+				},
+				{
+					text: this.$t('medienbaecker.alter.filter.reviewed'),
+					value: 'reviewed'
+				},
+				{
+					text: this.$t('medienbaecker.alter.filter.unreviewed'),
+					value: 'unreviewed'
+				}
+			];
+		},
+
+		emptyStateMessage() {
+			return this.$t('medienbaecker.alter.noImages');
 		},
 
 		groupedImages() {
@@ -204,6 +236,13 @@ export default {
 	},
 
 	created() {
+		// Initialize filter from URL parameters
+		const urlParams = new URLSearchParams(window.location.search);
+		const filterParam = urlParams.get('filter');
+		if (filterParam && ['with_alt', 'without_alt', 'reviewed', 'unreviewed'].includes(filterParam)) {
+			this.filterMode = filterParam;
+		}
+
 		// Use the page prop from the route
 		this.loadImages(this.page);
 	},
@@ -217,6 +256,26 @@ export default {
 	},
 
 	methods: {
+		onFilterChange(value) {
+			// Check for unsaved changes before switching filter
+			const hasUnsaved = Object.keys(this.currentImages).some((imageId) =>
+				this.hasChanges(imageId)
+			);
+
+			if (hasUnsaved) {
+				if (!confirm(this.$t("medienbaecker.alter.unsavedChanges"))) {
+					return;
+				}
+			}
+
+			this.filterMode = value;
+			// Reset to page 1 when filter changes
+			this.loadImages(1);
+			// Update URL to preserve filter state and reset page
+			const filterQuery = value ? `?filter=${value}` : '';
+			this.$go(`/alter/1${filterQuery}`);
+		},
+
 		onAltTextInput(imageId, value) {
 			// Strip newlines
 			const sanitizedValue = value.replace(/[\r\n]+/g, ' ').trim();
@@ -237,6 +296,7 @@ export default {
 			try {
 				const response = await this.$api.get("alter/images", {
 					page: page,
+					filter: this.filterMode || 'all',
 				});
 
 				this.images = response.images;
@@ -285,8 +345,9 @@ export default {
 			// Extract the page number from the pagination object
 			const page = paginationData.page || paginationData;
 
-			// Update the URL to preserve pagination state
-			this.$go(`/alter/${page}`);
+			// Update the URL to preserve pagination and filter state
+			const filterQuery = this.filterMode ? `?filter=${this.filterMode}` : '';
+			this.$go(`/alter/${page}${filterQuery}`);
 		},
 
 		getImageData(imageId) {
@@ -352,6 +413,11 @@ export default {
 				this.$set(this.originalImages, imageId, { ...current });
 
 				this.$panel.notification.success();
+
+				// Auto-refresh if filter is active to ensure displayed images match filter
+				if (this.filterMode !== null) {
+					await this.loadImages(this.pagination.page);
+				}
 			} catch (error) {
 				this.$panel.notification.error(this.$t("medienbaecker.alter.error"));
 				console.error(error);
@@ -402,6 +468,14 @@ export default {
 </script>
 
 <style scoped>
+.k-alter-filter {
+	margin-block-end: var(--spacing-12);
+}
+
+.k-alter-filter__select {
+	max-width: 16rem;
+}
+
 .page-group {
 	margin-bottom: 3rem;
 }
