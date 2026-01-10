@@ -57,7 +57,7 @@ kirby alter:generate --page "blog/my-article" --overwrite
 return [
 	'medienbaecker.alter' => [
 		'apiKey' => 'your-claude-api-key', // Set your Claude API key here
-		'model' => 'claude-haiku-4.5', // Optional: set a specific Claude model/alias
+		'model' => 'claude-haiku-4-5', // Optional: set a specific Claude model/alias
 		'prompt' => 'Your custom prompt', // Optional: Custom prompt for alt text generation
 	]
 ];
