@@ -5,10 +5,12 @@ use Kirby\Cms\App as Kirby;
 Kirby::plugin('medienbaecker/alter', [
 	'options' => [
 		'apiKey' => null,
+		'model' => 'claude-haiku-4-5',
+		'templates' => null,
 		'prompt' => function ($file) {
 			$prompt = 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc.';
-			$prompt .= ' The image is on a page called "' . $file->page()->title() . '".';
-			$prompt .= ' The site is called "' . $file->site()->title() . '".';
+			$prompt .= ' The image is on a page called “' . $file->page()->title() . '”.';
+			$prompt .= ' The site is called “' . $file->site()->title() . '”.';
 			$prompt .= ' Return the alt text only, without any additional text or formatting.';
 
 			return $prompt;
@@ -56,6 +58,12 @@ Kirby::plugin('medienbaecker/alter', [
 					$currentLanguage = kirby()->language();
 					$languageCode = $currentLanguage ? $currentLanguage->code() : null;
 
+					// Get template filter from options
+					$allowedTemplates = kirby()->option('medienbaecker.alter.templates');
+					if (is_string($allowedTemplates)) {
+						$allowedTemplates = [$allowedTemplates];
+					}
+
 					// Collect all images
 					$allImages = [];
 					$pages = site()->index(true);
@@ -63,6 +71,14 @@ Kirby::plugin('medienbaecker/alter', [
 					foreach ($pages as $sitePage) {
 						if ($sitePage->hasImages()) {
 							foreach ($sitePage->images() as $image) {
+								// Skip images with templates not in allowed list
+								if ($allowedTemplates !== null) {
+									$imageTemplate = $image->template();
+									if (!in_array($imageTemplate, $allowedTemplates)) {
+										continue;
+									}
+								}
+
 								// Get alt text for current language
 								$altText = '';
 								if ($languageCode) {
@@ -89,12 +105,16 @@ Kirby::plugin('medienbaecker/alter', [
 								foreach ($parents as $parent) {
 									$breadcrumbs[] = [
 										'title' => $parent->title()->value(),
-										'panelUrl' => $parent->panel()->url()
+										'label' => $parent->title()->value(),
+										'panelUrl' => $parent->panel()->url(),
+										'link' => $parent->panel()->url(),
 									];
 								}
 								$breadcrumbs[] = [
 									'title' => $sitePage->title()->value(),
-									'panelUrl' => $sitePage->panel()->url()
+									'label' => $sitePage->title()->value(),
+									'panelUrl' => $sitePage->panel()->url(),
+									'link' => $sitePage->panel()->url(),
 								];
 
 								$allImages[] = [

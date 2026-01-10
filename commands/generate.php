@@ -61,6 +61,7 @@ class AltTextGenerator
 
 		$this->config = [
 			'prompt' => $prompt,
+			'model' => kirby()->option('medienbaecker.alter.model', 'claude-haiku-4.5'),
 			'overwrite' => $cli->arg('overwrite'),
 			'dryRun' => $cli->arg('dry-run'),
 			'verbose' => $cli->arg('verbose'),
@@ -462,7 +463,7 @@ class AltTextGenerator
 	private function callClaudeApi(string $prompt): string
 	{
 		$requestData = [
-			'model' => 'claude-3-5-haiku-latest',
+			'model' => $this->config['model'],
 			'max_tokens' => 500,
 			'messages' => [
 				[
@@ -478,7 +479,7 @@ class AltTextGenerator
 	private function callClaudeApiWithImage(string $imageData, string $mimeType, string $prompt): string
 	{
 		$requestData = [
-			'model' => 'claude-3-5-haiku-latest',
+			'model' => $this->config['model'],
 			'max_tokens' => 500,
 			'messages' => [
 				[
@@ -524,7 +525,7 @@ class AltTextGenerator
 		$response = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		$curlError = curl_error($ch);
-		curl_close($ch);
+		unset($ch); // CurlHandle auto-closes when unset in PHP 8.0+
 
 		if ($curlError) {
 			throw new \Exception('cURL error: ' . $curlError);
