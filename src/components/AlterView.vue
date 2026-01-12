@@ -3,16 +3,6 @@
     <k-header>
       {{ $t('medienbaecker.alter.title') }}
       <template #buttons>
-        <k-button
-          @click="saveAllChanges"
-          icon="check"
-          theme="orange"
-          variant="filled"
-          size="sm"
-          :style="{ visibility: hasAnyChanges ? 'visible' : 'hidden' }"
-        >
-          {{ $t('medienbaecker.alter.save') }}
-        </k-button>
         <div class="k-alter-filter">
           <k-button
             :dropdown="true"
@@ -81,6 +71,28 @@
             </k-dropdown-item>
           </k-dropdown-content>
         </div>
+        <div v-if="hasAnyChanges" class="k-form-controls">
+          <div class="k-button-group" data-layout="collapsed">
+            <k-button
+              @click="discardChanges"
+              icon="undo"
+              variant="filled"
+              theme="notice"
+              size="sm"
+            >
+              {{ $t('discard') }}
+            </k-button>
+            <k-button
+              @click="saveAllChanges"
+              icon="check"
+              theme="notice"
+              variant="filled"
+              size="sm"
+            >
+              {{ $t('medienbaecker.alter.save') }}
+            </k-button>
+          </div>
+        </div>
       </template>
     </k-header>
 
@@ -134,12 +146,15 @@
         >
           <template #default="{ item }">
             <div
-              :class="[
-                'alt-review-card',
-                { 'alt-review-card--has-changes': hasChanges(item.id) },
-              ]"
+              :class="['k-alter-card', 'k-item', 'k-cards-item']"
+              data-layout="cards"
+              :data-theme="cardTheme(item.id)"
+              data-has-image="true"
+              :data-selecting="hasChanges(item.id)"
+              data-selectable="true"
+              :style="cardStyle(item.id)"
             >
-              <k-link :to="item.panelUrl" class="alt-review-card__image-link">
+              <k-link :to="item.panelUrl" class="k-alter-card__image-link">
                 <k-image-frame
                   :src="item.thumbUrl"
                   :alt="getImageData(item.id).alt"
@@ -148,17 +163,9 @@
                 />
               </k-link>
 
-              <div class="alt-review-card__content">
-                <k-text class="alt-review-card__filename">
-                  <k-link
-                    :to="item.panelUrl"
-                    class="alt-review-card__filename-link"
-                  >
-                    <strong>{{ item.filename }}</strong>
-                  </k-link>
-                </k-text>
-
+              <div class="k-alter-card__content k-item-content">
                 <k-textarea-field
+                  :label="item.filename"
                   :value="
                     currentImages[item.id] ? currentImages[item.id].alt : ''
                   "
@@ -166,22 +173,37 @@
                   @keydown.native="onAltTextKeydown"
                   :placeholder="$t('medienbaecker.alter.noAltText')"
                   :buttons="false"
-                  :counter="false"
+                  :counter="true"
+                  :maxlength="maxLength || null"
                   size="small"
-                  class="alt-review-card__alt-input"
+                  class="k-alter-card__alt-input"
                 />
 
-                <label class="alt-review-card__checkbox">
-                  <input
-                    type="checkbox"
-                    :checked="getImageData(item.id).alt_reviewed"
-                    @change="onReviewChange(item.id, $event.target.checked)"
-                    class="alt-review-card__checkbox-input"
-                  />
-                  <span class="alt-review-card__checkbox-label">{{
-                    $t('medienbaecker.alter.reviewed')
-                  }}</span>
-                </label>
+                <div
+                  v-if="hasChanges(item.id)"
+                  class="k-alter-card__actions k-form-controls"
+                >
+                  <div class="k-button-group" data-layout="collapsed">
+                    <k-button
+                      icon="undo"
+                      variant="filled"
+                      theme="notice"
+                      size="sm"
+                      @click="discardImage(item.id)"
+                    >
+                      {{ $t('discard') }}
+                    </k-button>
+                    <k-button
+                      icon="check"
+                      variant="filled"
+                      theme="notice"
+                      size="sm"
+                      @click="saveImage(item.id)"
+                    >
+                      {{ $t('save') }}
+                    </k-button>
+                  </div>
+                </div>
               </div>
             </div>
           </template>
@@ -207,6 +229,10 @@ export default {
     page: {
       type: Number,
       default: 1,
+    },
+    maxLength: {
+      type: [Number, Boolean],
+      default: false,
     },
   },
 
@@ -376,6 +402,24 @@ export default {
       return this.currentImages[imageId] || { alt: '', alt_reviewed: false };
     },
 
+    cardTheme(imageId) {
+      const imageData = this.getImageData(imageId);
+      return this.hasChanges(imageId) ? 'info' : null;
+    },
+
+    cardStyle(imageId) {
+      const theme = this.cardTheme(imageId);
+      if (theme === 'info') {
+        return {
+          '--item-color-back':
+            'light-dark(var(--color-orange-250), var(--color-orange-800))',
+          '--item-color-icon': 'var(--color-orange-600)',
+          'border-color': 'var(--color-orange-300)',
+        };
+      }
+      return {};
+    },
+
     formatItems(pageImages) {
       return pageImages.map((image) => ({
         ...image,
@@ -386,8 +430,9 @@ export default {
 
     formatBreadcrumbs(breadcrumbs) {
       return breadcrumbs.map((crumb) => ({
-        text: crumb.title,
-        link: crumb.panelUrl,
+        text: crumb.title || crumb.label,
+        label: crumb.label || crumb.title,
+        link: crumb.panelUrl || crumb.link,
       }));
     },
 
@@ -525,11 +570,6 @@ export default {
 
         this.$set(this.originalImages, imageId, { ...current });
         this.$panel.notification.success();
-
-        // Auto-refresh if filter is active
-        if (this.filterMode !== null) {
-          await this.loadImages(this.pagination.page);
-        }
       } catch (error) {
         this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
         console.error(error);
@@ -552,7 +592,7 @@ export default {
       return response;
     },
 
-    saveAllChanges(event) {
+    async saveAllChanges(event) {
       if (event) {
         event.preventDefault();
       }
@@ -565,8 +605,24 @@ export default {
         return;
       }
 
-      changedImages.forEach((imageId) => {
-        this.saveImage(imageId);
+      await Promise.all(
+        changedImages.map((imageId) => this.saveImage(imageId)),
+      );
+    },
+
+    discardImage(imageId) {
+      const original = this.originalImages[imageId];
+      if (original) {
+        this.$set(this.currentImages, imageId, { ...original });
+      }
+    },
+
+    discardChanges() {
+      Object.keys(this.currentImages).forEach((imageId) => {
+        const original = this.originalImages[imageId];
+        if (original) {
+          this.$set(this.currentImages, imageId, { ...original });
+        }
       });
     },
   },
@@ -610,38 +666,40 @@ export default {
   align-items: center;
 }
 
-.alt-review-card {
+.k-alter-card {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border-radius: var(--rounded);
-  background: light-dark(var(--color-white), var(--color-gray-850));
-  border: 1px solid var(--color-border);
   height: 100%;
 }
 
-.alt-review-card--has-changes {
-  outline: 2px solid var(--color-orange-400);
-  outline-offset: -1px;
+.k-alter-card[data-theme='info'] {
+  --item-color-back: light-dark(
+    var(--color-orange-200),
+    var(--color-orange-1000, var(--color-gray-850))
+  );
+  --item-color-icon: var(--color-orange-600);
+  border-color: var(--color-orange-300);
 }
 
-.alt-review-card__image-link {
+.k-alter-card__image-link {
   display: block;
 }
 
-.alt-review-card__content {
+.k-alter-card__content {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   padding: 1rem;
 }
 
-.alt-review-card__filename {
+.k-alter-card__filename {
   flex-shrink: 0;
   margin-bottom: 0.75rem;
 }
 
-.alt-review-card__filename-link {
+.k-alter-card__filename-link {
   display: block;
   text-decoration: none;
   color: inherit;
@@ -651,36 +709,19 @@ export default {
   min-width: 0;
 }
 
-.alt-review-card__alt-input {
+.k-alter-card__alt-input {
   flex-grow: 1;
   margin-bottom: 0.75rem;
 }
 
-.alt-review-card__alt-input :deep(.k-textarea-input) {
+.k-alter-card__alt-input :deep(.k-textarea-input) {
   min-height: 4rem;
 }
 
-.alt-review-card__checkbox {
-  flex-shrink: 0;
-  margin-top: auto;
+.k-alter-card__actions {
+  margin-top: 0.75rem;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  user-select: none;
-}
-
-.alt-review-card__checkbox-input {
-  width: 1rem;
-  height: 1rem;
-  margin: 0;
-  cursor: pointer;
-}
-
-.alt-review-card__checkbox-label {
-  font-size: 0.875rem;
-  color: var(--color-text);
-  cursor: pointer;
+  justify-content: flex-end;
 }
 
 /* Language dropdown */
@@ -692,5 +733,21 @@ export default {
   font-size: var(--text-xs);
   color: var(--color-gray-500);
   margin-inline-start: var(--spacing-3);
+}
+
+:global(.k-alter-view .k-breadcrumb) {
+  overflow-x: auto;
+}
+
+:global(.k-alter-view .k-breadcrumb ol) {
+  display: flex;
+}
+
+:global(.k-alter-view .k-breadcrumb-dropdown) {
+  display: none;
+}
+
+:global(.k-item[data-selecting='true'][data-selectable='true']) {
+  cursor: pointer;
 }
 </style>

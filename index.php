@@ -7,6 +7,7 @@ Kirby::plugin('medienbaecker/alter', [
 		'apiKey' => null,
 		'model' => 'claude-haiku-4-5',
 		'templates' => null,
+		'maxLength' => false,
 		'prompt' => function ($file) {
 			$prompt = 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc.';
 			$prompt .= ' The image is on a page called “' . $file->page()->title() . '”.';
@@ -34,7 +35,8 @@ Kirby::plugin('medienbaecker/alter', [
 							return [
 								'component' => 'k-alter-view',
 								'props' => [
-									'page' => (int)$page
+									'page' => (int)$page,
+									'maxLength' => option('medienbaecker.alter.maxLength', false)
 								]
 							];
 						}

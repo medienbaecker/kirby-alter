@@ -59,6 +59,7 @@ return [
 		'apiKey' => 'your-claude-api-key', // Set your Claude API key here
 		'model' => 'claude-haiku-4-5', // Optional: set a specific Claude model/alias
 		'prompt' => 'Your custom prompt', // Optional: Custom prompt for alt text generation
+		'maxAltLength' => false, // Optional: set a max length (e.g. 125) for alt texts in the panel counter
 	]
 ];
 
