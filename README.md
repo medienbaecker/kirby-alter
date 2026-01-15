@@ -1,26 +1,43 @@
 # Kirby Alter
 
-A [Kirby](https://getkirby.com/) plugin for generating and reviewing alt texts for images in your sites.
+Generate and review alt texts for images on [Kirby CMS](https://getkirby.com/).
 
-> [!WARNING]  
-> Use this plugin at your own risk. It was built primarily for my own projects and may not work in yours.
+## Requirements
 
-I use some Kirby 5 specific features, but it could potentially work Kirby 4 as well. Please report any issues you encounter.
+- Kirby 5+
+- PHP 8.2+
+
+## Installation
+
+```bash
+composer require medienbaecker/kirby-alter
+```
+
+> [!TIP]
+> If you don’t use Composer, you can download this repository and copy it to `site/plugins/kirby-alter`.
 
 ## Features
 
 ### Panel view
 
-The plugin provides a custom panel view for reviewing and managing alt texts of images across all pages in your site. Each image also gets a "Reviewed" checkbox that gets saved as `alt_reviewed` in the file's content file.
+The plugin provides a custom Panel view for reviewing and managing alt texts of images across all pages in your site.
+
+- Edits are stored as Kirby draft changes (unsaved changes via the `changes` version)
+- Changes can be saved (publish) or discarded per image or in bulk
+- Sections show a badge with the number of images that currently have draft changes
+- Filter modes help to focus on **All / Saved / Unsaved / Missing**
 
 ![Screenshot of the custom panel view with several cat images and alt texts](https://github.com/user-attachments/assets/6136bebe-ec70-4a33-ab61-80a994af237c)
 
 ### CLI command
 
-I also included an `alter:generate` [CLI command](https://github.com/getkirby/cli) that uses the [Claude API](https://docs.anthropic.com/en/api/overview) to generate alt texts for your images.
+I also included an `alter:generate` [CLI command](https://github.com/getkirby/cli) that uses the [Claude API](https://docs.anthropic.com/en/api/overview) to generate alt texts for your images. Generated texts are stored as unsaved changes and need to be reviewed and published in the Panel.
 
-- Supports multi-language installations and only uploads the image for the default language and then translates the generated alt text to the other languages
+- Supports multi-language installations (you can generate for the default language only, or for all languages)
 - Detects duplicate images and saves tokens by only uploading them once, updating all instances at once
+
+> [!WARNING]
+> `--dry-run` still uses the API (it only skips writing changes).
 
 ![Screenshot of a terminal displaying output from "kirby alter:generate"](https://github.com/user-attachments/assets/b82e6e42-de36-4545-b484-240936b2fbeb)
 
@@ -52,20 +69,19 @@ kirby alter:generate --page "blog/my-article" --overwrite
 
 ```php
 // site/config/config.php
-<?php
-
 return [
 	'medienbaecker.alter' => [
-		'apiKey' => 'your-claude-api-key', // Set your Claude API key here
-		'model' => 'claude-haiku-4-5', // Optional: set a specific Claude model/alias
-		'prompt' => 'Your custom prompt', // Optional: Custom prompt for alt text generation
-		'maxAltLength' => false, // Optional: set a max length (e.g. 125) for alt texts in the panel counter
+		'apiKey' => 'claude-api-key', // Set your Claude API key here
+		'model' => 'model-id', // Optional: set a Claude model id/alias
+		'templates' => null, // Optional: restrict to specific file templates (string or array)
+		'prompt' => 'Custom prompt', // Optional: custom prompt for alt text generation
+		'maxLength' => false, // Optional: set a max length (e.g. 125) for alt texts in the panel counter
 	]
 ];
-
 ```
 
-Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
+> [!TIP]
+> Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
 
 ### Custom Prompt Configuration
 
@@ -92,10 +108,4 @@ You can override this with your own string or callback:
 'prompt' => function($file) {
 	return 'Describe this image. Context: "' . $file->page()->text()->excerpt(100) . '"';
 }
-```
-
-## Installation
-
-```
-composer require medienbaecker/kirby-alter
 ```

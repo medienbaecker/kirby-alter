@@ -1,54 +1,55 @@
 <template>
-  <k-panel-inside class="k-alter-view">
+  <k-panel-inside>
     <k-header>
       {{ $t('medienbaecker.alter.title') }}
       <template #buttons>
-        <div class="k-alter-filter">
-          <k-button
-            :dropdown="true"
-            icon="filter"
-            variant="filled"
-            size="sm"
-            :text="currentFilterLabel"
-            @click="$refs.filterDropdown.toggle()"
-          />
-          <k-dropdown-content ref="filterDropdown" align-x="end">
-            <k-dropdown-item
-              :current="filterMode === null"
-              @click="onFilterChange(null)"
-            >
-              {{ $t('medienbaecker.alter.filter.all') }}
-            </k-dropdown-item>
-            <k-dropdown-item
-              v-for="option in filterOptions"
-              :key="option.value"
-              :current="filterMode === option.value"
-              @click="onFilterChange(option.value)"
-            >
-              {{ option.text }}
-            </k-dropdown-item>
-          </k-dropdown-content>
-        </div>
+        <k-button
+          :dropdown="true"
+          icon="filter"
+          variant="filled"
+          size="sm"
+          :text="currentFilterLabel"
+          @click="$refs.filterDropdown.toggle()"
+        />
+        <k-dropdown-content ref="filterDropdown" align-x="end">
+          <k-dropdown-item
+            :current="filterMode === null"
+            @click="onFilterChange(null)"
+          >
+            {{ $t('medienbaecker.alter.filter.all') }}
+          </k-dropdown-item>
+          <k-dropdown-item
+            v-for="option in filterOptions"
+            :key="option.value"
+            :current="filterMode === option.value"
+            @click="onFilterChange(option.value)"
+          >
+            {{ option.text }}
+          </k-dropdown-item>
+        </k-dropdown-content>
+
         <k-button
           v-if="totalImagesCount > 0"
-          element="span"
           variant="filled"
           size="sm"
           icon="edit"
+          element="span"
         >
-          {{ `${altTextImagesCount}/${totalImagesCount}` }}
+          {{ `${unsavedImagesCount}/${totalImagesCount}` }}
         </k-button>
+
         <k-button
           v-if="totalImagesCount > 0"
-          element="span"
           variant="filled"
           size="sm"
           icon="check"
+          element="span"
           :theme="isComplete ? 'positive' : null"
         >
-          {{ `${reviewedImagesCount}/${totalImagesCount}` }}
+          {{ `${savedImagesCount}/${totalImagesCount}` }}
         </k-button>
-        <div v-if="languages.length > 1" class="k-alter-language">
+
+        <template v-if="languages.length > 1">
           <k-button
             :dropdown="true"
             icon="translate"
@@ -65,14 +66,13 @@
               @click="onLanguageChange(lang.code)"
             >
               {{ lang.name }}
-              <span class="k-alter-language-code">{{
-                lang.code.toUpperCase()
-              }}</span>
+              <span>{{ lang.code.toUpperCase() }}</span>
             </k-dropdown-item>
           </k-dropdown-content>
-        </div>
-        <div v-if="hasAnyChanges" class="k-form-controls">
-          <div class="k-button-group" data-layout="collapsed">
+        </template>
+
+        <k-form-controls v-if="hasAnyChanges">
+          <k-button-group layout="collapsed">
             <k-button
               @click="discardChanges"
               icon="undo"
@@ -91,8 +91,8 @@
             >
               {{ $t('medienbaecker.alter.save') }}
             </k-button>
-          </div>
-        </div>
+          </k-button-group>
+        </k-form-controls>
       </template>
     </k-header>
 
@@ -104,30 +104,18 @@
       <k-text>{{ emptyStateMessage }}</k-text>
     </div>
 
-    <div v-else class="k-alter-content">
-      <div
-        v-for="pageGroup in groupedImages"
-        :key="pageGroup.pageId"
-        class="page-group"
-      >
-        <div class="page-group__header">
-          <k-breadcrumb
-            :crumbs="formatBreadcrumbs(pageGroup.breadcrumbs)"
-            class="page-group__breadcrumb"
-          />
-          <div class="page-group__badges">
+    <template v-else>
+      <k-section v-for="pageGroup in groupedImages" :key="pageGroup.pageId">
+        <header class="k-section-header">
+          <k-breadcrumb :crumbs="formatBreadcrumbs(pageGroup.breadcrumbs)" />
+
+          <k-button-group class="k-section-buttons">
             <k-button
-              v-if="
-                pageGroup.pageStatus === 'draft' || pageGroup.hasParentDrafts
-              "
-              element="span"
               variant="filled"
               size="sm"
-              theme="negative"
+              element="span"
+              :badge="badgeForPage(pageGroup.pageId)"
             >
-              {{ $t('page.status.draft') }}
-            </k-button>
-            <k-button element="span" variant="filled" size="sm">
               {{ pageGroup.images.length }}
               {{
                 pageGroup.images.length === 1
@@ -135,8 +123,37 @@
                   : $t('medienbaecker.alter.images')
               }}
             </k-button>
-          </div>
-        </div>
+
+            <k-button
+              v-if="pageGroup.hasParentDrafts || pageGroup.pageStatus"
+              element="span"
+              variant="filled"
+              size="sm"
+              :icon="
+                pageGroup.hasParentDrafts
+                  ? 'status-draft'
+                  : pageStatusUi(pageGroup).icon
+              "
+              :theme="
+                pageGroup.hasParentDrafts
+                  ? 'negative-icon'
+                  : pageStatusUi(pageGroup).theme
+              "
+              :title="
+                pageGroup.hasParentDrafts
+                  ? $t('medienbaecker.alter.parentDraft')
+                  : pageStatusUi(pageGroup).title
+              "
+              :responsive="true"
+            >
+              {{
+                pageGroup.hasParentDrafts
+                  ? $t('page.status.draft')
+                  : pageStatusUi(pageGroup).text
+              }}
+            </k-button>
+          </k-button-group>
+        </header>
 
         <k-items
           :items="formatItems(pageGroup.images)"
@@ -145,16 +162,8 @@
           :link="false"
         >
           <template #default="{ item }">
-            <div
-              :class="['k-alter-card', 'k-item', 'k-cards-item']"
-              data-layout="cards"
-              :data-theme="cardTheme(item.id)"
-              data-has-image="true"
-              :data-selecting="hasChanges(item.id)"
-              data-selectable="true"
-              :style="cardStyle(item.id)"
-            >
-              <k-link :to="item.panelUrl" class="k-alter-card__image-link">
+            <div class="k-item k-cards-item" :data-image-id="item.id">
+              <k-link :to="item.panelUrl">
                 <k-image-frame
                   :src="item.thumbUrl"
                   :alt="getImageData(item.id).alt"
@@ -163,27 +172,27 @@
                 />
               </k-link>
 
-              <div class="k-alter-card__content k-item-content">
+              <div class="k-item-content">
                 <k-textarea-field
                   :label="item.filename"
+                  name="alt"
+                  type="textarea"
                   :value="
                     currentImages[item.id] ? currentImages[item.id].alt : ''
                   "
                   @input="onAltTextInput(item.id, $event)"
-                  @keydown.native="onAltTextKeydown"
+                  @focusin.native="setActiveImage(item.id)"
+                  @mousedown.native="setActiveImage(item.id)"
+                  @keydown.native="onAltTextKeydown(item.id, $event)"
                   :placeholder="$t('medienbaecker.alter.noAltText')"
                   :buttons="false"
                   :counter="true"
                   :maxlength="maxLength || null"
                   size="small"
-                  class="k-alter-card__alt-input"
                 />
 
-                <div
-                  v-if="hasChanges(item.id)"
-                  class="k-alter-card__actions k-form-controls"
-                >
-                  <div class="k-button-group" data-layout="collapsed">
+                <div v-if="hasChanges(item.id)" class="k-form-controls">
+                  <k-button-group layout="collapsed">
                     <k-button
                       icon="undo"
                       variant="filled"
@@ -202,13 +211,13 @@
                     >
                       {{ $t('save') }}
                     </k-button>
-                  </div>
+                  </k-button-group>
                 </div>
               </div>
             </div>
           </template>
         </k-items>
-      </div>
+      </k-section>
 
       <k-pagination
         v-if="pagination.total > pagination.limit"
@@ -217,9 +226,8 @@
         :limit="pagination.limit"
         :details="true"
         @paginate="onPageChange"
-        style="margin-top: 2rem"
       />
-    </div>
+    </template>
   </k-panel-inside>
 </template>
 
@@ -238,51 +246,63 @@ export default {
 
   data() {
     return {
+      // API data + derived UI data
+      images: [],
+      pagination: { page: 1, pages: 1, total: 0, limit: 100 },
+      totals: { unsaved: 0, saved: 0, total: 0 },
+
+      // Local edit state
       currentImages: {},
       originalImages: {},
       saving: {},
-      images: [],
-      pagination: { page: 1, pages: 1, total: 0, limit: 100 },
-      totals: { withAltText: 0, reviewed: 0, total: 0 },
+
+      // Draft autosave (debounced) per image
+      altSaveTimeouts: {},
+
+      // UI state
       loading: false,
       filterMode: null,
       hasLoadedOnce: false,
+
+      // “active textarea” tracking for Cmd+S (save current item)
+      activeImageId: null,
+      lastCmdSHandledAt: 0,
     };
   },
 
   computed: {
-    reviewedImagesCount() {
-      return this.totals.reviewed;
+    // Totals
+    savedImagesCount() {
+      return this.totals.saved;
     },
-
-    altTextImagesCount() {
-      return this.totals.withAltText;
+    unsavedImagesCount() {
+      return this.totals.unsaved;
     },
-
     totalImagesCount() {
       return this.totals.total;
     },
-
     isComplete() {
       return (
-        this.totals.total > 0 && this.reviewedImagesCount === this.totals.total
+        this.totals.total > 0 && this.savedImagesCount === this.totals.total
       );
     },
 
+    // Changes
     hasAnyChanges() {
       return Object.keys(this.currentImages).some((imageId) =>
         this.hasChanges(imageId),
       );
     },
 
+    // Languages
     currentLanguage() {
       return this.$panel.language ? this.$panel.language.code : null;
     },
-
     languages() {
       return this.$panel.languages || [];
     },
 
+    // Filter UI
     currentFilterLabel() {
       if (this.filterMode === null) {
         return this.$t('medienbaecker.alter.filter.all');
@@ -292,24 +312,19 @@ export default {
       );
       return option ? option.text : this.$t('medienbaecker.alter.filter.all');
     },
-
     filterOptions() {
       return [
         {
-          text: this.$t('medienbaecker.alter.filter.with_alt'),
+          text: this.$t('medienbaecker.alter.filter.saved'),
           value: 'with_alt',
         },
         {
-          text: this.$t('medienbaecker.alter.filter.without_alt'),
+          text: this.$t('medienbaecker.alter.filter.unsaved'),
+          value: 'unsaved',
+        },
+        {
+          text: this.$t('medienbaecker.alter.filter.empty'),
           value: 'without_alt',
-        },
-        {
-          text: this.$t('medienbaecker.alter.filter.reviewed'),
-          value: 'reviewed',
-        },
-        {
-          text: this.$t('medienbaecker.alter.filter.unreviewed'),
-          value: 'unreviewed',
         },
       ];
     },
@@ -318,6 +333,7 @@ export default {
       return this.$t('medienbaecker.alter.noImages');
     },
 
+    // Group by page (for section rendering)
     groupedImages() {
       const groups = {};
 
@@ -343,21 +359,31 @@ export default {
         a.sortKey.localeCompare(b.sortKey),
       );
     },
+
+    // Badge count per page
+    unsavedCountByPageId() {
+      const map = Object.create(null);
+
+      for (const img of this.images) {
+        const pageId = img.pageId;
+        if (map[pageId] == null) map[pageId] = 0;
+        if (this.hasChanges(img.id)) map[pageId] += 1;
+      }
+
+      return map;
+    },
   },
 
   watch: {
     page(newPage) {
-      this.loadImages(newPage);
+      // Flush pending draft saves before navigation/pagination changes
+      this.flushAltDraftSaves().finally(() => this.loadImages(newPage));
     },
 
     currentLanguage(newLanguage, oldLanguage) {
       if (newLanguage !== oldLanguage && oldLanguage !== undefined) {
-        if (this.hasAnyChanges) {
-          if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
-            return;
-          }
-        }
-        this.loadImages(this.page);
+        // No confirm dialog: drafts are persisted. Just flush and reload.
+        this.flushAltDraftSaves().finally(() => this.loadImages(this.page));
       }
     },
   },
@@ -365,11 +391,10 @@ export default {
   created() {
     const urlParams = new URLSearchParams(window.location.search);
     const filterParam = urlParams.get('filter');
+
     if (
       filterParam &&
-      ['with_alt', 'without_alt', 'reviewed', 'unreviewed'].includes(
-        filterParam,
-      )
+      ['with_alt', 'without_alt', 'unsaved'].includes(filterParam)
     ) {
       this.filterMode = filterParam;
     }
@@ -378,108 +403,258 @@ export default {
   },
 
   mounted() {
-    window.panel.events.on('keydown.cmd.s', this.saveAllChanges);
+    // Global Cmd+S handler (Panel hotkey). We route to "active item" save if possible.
+    window.panel.events.on('keydown.cmd.s', this.onCmdS);
   },
 
   beforeDestroy() {
-    window.panel.events.off('keydown.cmd.s', this.saveAllChanges);
+    window.panel.events.off('keydown.cmd.s', this.onCmdS);
   },
 
   methods: {
-    hasChanges(imageId) {
-      const current = this.currentImages[imageId];
-      const original = this.originalImages[imageId];
+    // ---------------------------------------------------------------------
+    // Status UI helpers
+    // ---------------------------------------------------------------------
 
-      if (!current || !original) return false;
+    pageStatusUi(pageGroup) {
+      const status = pageGroup.pageStatus;
 
-      return (
-        current.alt !== original.alt ||
-        current.alt_reviewed !== original.alt_reviewed
-      );
+      const map = {
+        draft: {
+          icon: 'status-draft',
+          theme: 'negative-icon',
+          text: this.$t('page.status.draft'),
+        },
+        unlisted: {
+          icon: 'status-unlisted',
+          theme: 'notice-icon', // fallback: "orange-icon"
+          text: this.$t('page.status.unlisted'),
+        },
+        listed: {
+          icon: 'status-listed',
+          theme: 'positive-icon', // fallback: "green-icon"
+          text: this.$t('page.status.listed'),
+        },
+      };
+
+      const ui = map[status] ?? {
+        icon: 'circle',
+        theme: null,
+        text: status,
+      };
+
+      ui.title = `Status: ${ui.text}`;
+      return ui;
     },
 
-    getImageData(imageId) {
-      return this.currentImages[imageId] || { alt: '', alt_reviewed: false };
+    badgeForPage(pageId) {
+      const count = this.unsavedCountByPageId[pageId] || 0;
+      return count > 0 ? { theme: 'orange', text: count } : null;
     },
 
-    cardTheme(imageId) {
-      const imageData = this.getImageData(imageId);
-      return this.hasChanges(imageId) ? 'info' : null;
+    // ---------------------------------------------------------------------
+    // Active item tracking (for Cmd+S = save current textarea)
+    // ---------------------------------------------------------------------
+
+    setActiveImage(imageId) {
+      this.activeImageId = imageId;
     },
 
-    cardStyle(imageId) {
-      const theme = this.cardTheme(imageId);
-      if (theme === 'info') {
-        return {
-          '--item-color-back':
-            'light-dark(var(--color-orange-250), var(--color-orange-800))',
-          '--item-color-icon': 'var(--color-orange-600)',
-          'border-color': 'var(--color-orange-300)',
-        };
+    getActiveImageIdFromDom() {
+      const el = document.activeElement;
+      if (!el || !el.closest) return null;
+
+      const card = el.closest('[data-image-id]');
+      return card?.dataset?.imageId || null;
+    },
+
+    // ---------------------------------------------------------------------
+    // Keyboard handlers
+    // ---------------------------------------------------------------------
+
+    async onCmdS(event) {
+      // If textarea handler already intercepted Cmd+S, ignore the global one.
+      if (Date.now() - this.lastCmdSHandledAt < 250) {
+        event?.preventDefault?.();
+        return;
       }
-      return {};
-    },
 
-    formatItems(pageImages) {
-      return pageImages.map((image) => ({
-        ...image,
-        text: image.filename,
-        image: { src: image.thumbUrl, back: 'pattern', ratio: '3/2' },
-      }));
-    },
+      event?.preventDefault?.();
 
-    formatBreadcrumbs(breadcrumbs) {
-      return breadcrumbs.map((crumb) => ({
-        text: crumb.title || crumb.label,
-        label: crumb.label || crumb.title,
-        link: crumb.panelUrl || crumb.link,
-      }));
-    },
+      const activeId = this.activeImageId || this.getActiveImageIdFromDom();
 
-    onFilterChange(value) {
-      if (this.hasAnyChanges) {
-        if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
-          return;
-        }
+      if (activeId && this.hasChanges(activeId)) {
+        await this.saveImage(activeId);
+        return;
       }
 
-      this.filterMode = value;
-      this.loadImages(1);
-      const filterQuery = value ? `?filter=${value}` : '';
-      this.$go(`/alter/1${filterQuery}`);
+      await this.saveAllChanges(event);
     },
 
-    onLanguageChange(code) {
-      if (this.hasAnyChanges) {
-        if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
-          return;
-        }
+    onAltTextKeydown(imageId, event) {
+      this.setActiveImage(imageId);
+
+      const isSave =
+        (event.metaKey || event.ctrlKey) &&
+        String(event.key).toLowerCase() === 's';
+
+      if (isSave) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Mark handled so the global Panel shortcut doesn't re-trigger.
+        this.lastCmdSHandledAt = Date.now();
+
+        this.saveImage(imageId);
+        return;
       }
-      this.$panel.language = this.$panel.languages.find((l) => l.code === code);
-      this.loadImages(this.page);
-    },
 
-    onAltTextInput(imageId, value) {
-      const sanitizedValue = value.replace(/[\r\n]+/g, ' ').trim();
-      if (this.currentImages[imageId]) {
-        this.$set(this.currentImages[imageId], 'alt', sanitizedValue);
-      }
-    },
-
-    onAltTextKeydown(event) {
       if (event.key === 'Enter') {
         event.preventDefault();
       }
     },
 
-    onReviewChange(imageId, checked) {
-      if (this.currentImages[imageId]) {
-        this.$set(this.currentImages[imageId], 'alt_reviewed', checked);
+    // ---------------------------------------------------------------------
+    // Local change tracking
+    // ---------------------------------------------------------------------
+
+    hasChanges(imageId) {
+      const current = this.currentImages[imageId];
+      const original = this.originalImages[imageId];
+      if (!current || !original) return false;
+
+      return current.alt !== original.alt;
+    },
+
+    getImageData(imageId) {
+      return this.currentImages[imageId] || { alt: '' };
+    },
+
+    // ---------------------------------------------------------------------
+    // Draft autosave (debounced) helpers
+    // ---------------------------------------------------------------------
+
+    async saveAltDraft(imageId) {
+      const image = this.getImageById(imageId);
+      if (!image) return;
+
+      const value = (this.currentImages[imageId]?.alt ?? '').trim();
+
+      try {
+        const resp = await this.$api.post('alter/update', {
+          imageId: image.id,
+          field: 'alt',
+          value,
+        });
+
+        if (resp && resp.error) {
+          this.$panel.notification.error(
+            resp.error || this.$t('medienbaecker.alter.error'),
+          );
+        }
+      } catch (e) {
+        this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
+        console.error('Draft save failed', e);
       }
     },
 
+    scheduleAltDraftSave(imageId) {
+      if (this.altSaveTimeouts[imageId]) {
+        clearTimeout(this.altSaveTimeouts[imageId]);
+      }
+
+      this.altSaveTimeouts[imageId] = setTimeout(async () => {
+        try {
+          await this.saveAltDraft(imageId);
+        } finally {
+          this.altSaveTimeouts[imageId] = null;
+        }
+      }, 200);
+    },
+
+    async flushAltDraftSaves() {
+      const ids = Object.keys(this.altSaveTimeouts).filter(
+        (id) => this.altSaveTimeouts[id],
+      );
+
+      if (ids.length === 0) return;
+
+      // Cancel pending timeouts
+      for (const id of ids) {
+        clearTimeout(this.altSaveTimeouts[id]);
+        this.altSaveTimeouts[id] = null;
+      }
+
+      // Persist immediately
+      await Promise.all(ids.map((id) => this.saveAltDraft(id)));
+    },
+
+    async flushAltDraftSaveFor(imageId) {
+      const timeout = this.altSaveTimeouts?.[imageId];
+      if (!timeout) return;
+
+      clearTimeout(timeout);
+      this.altSaveTimeouts[imageId] = null;
+
+      await this.saveAltDraft(imageId);
+    },
+
+    // ---------------------------------------------------------------------
+    // View actions (filter / language / pagination)
+    // ---------------------------------------------------------------------
+
+    async onFilterChange(value) {
+      await this.flushAltDraftSaves();
+
+      this.filterMode = value;
+      this.loadImages(1);
+
+      const filterQuery = value ? `?filter=${value}` : '';
+      this.$go(`/alter/1${filterQuery}`);
+    },
+
+    async onLanguageChange(code) {
+      await this.flushAltDraftSaves();
+
+      this.$panel.language = this.$panel.languages.find((l) => l.code === code);
+      this.loadImages(this.page);
+    },
+
+    async onPageChange(paginationData) {
+      await this.flushAltDraftSaves();
+
+      const page = paginationData.page || paginationData;
+      const filterQuery = this.filterMode ? `?filter=${this.filterMode}` : '';
+      this.$go(`/alter/${page}${filterQuery}`);
+    },
+
+    // ---------------------------------------------------------------------
+    // Input handling
+    // ---------------------------------------------------------------------
+
+    onAltTextInput(imageId, value) {
+      const sanitizedValue = value.replace(/[\r\n]+/g, ' ').trim();
+
+      if (this.currentImages[imageId]) {
+        const wasChanged = this.hasChanges(imageId);
+
+        this.$set(this.currentImages[imageId], 'alt', sanitizedValue);
+
+        const isChanged = this.hasChanges(imageId);
+        this.updateUnsavedTotals(wasChanged, isChanged);
+
+        // Debounced draft save
+        this.scheduleAltDraftSave(imageId);
+      }
+    },
+
+    // ---------------------------------------------------------------------
+    // Data loading + formatting
+    // ---------------------------------------------------------------------
+
     async loadImages(page = 1) {
       this.loading = true;
+
       try {
         const response = await this.$api.get('alter/images', {
           page: page,
@@ -506,69 +681,86 @@ export default {
       this.saving = {};
 
       this.images.forEach((image) => {
-        const imageData = {
-          alt: image.alt,
-          alt_reviewed: image.alt_reviewed,
-        };
+        const currentData = { alt: image.alt || '' };
+        const originalData = { alt: image.altOriginal || '' };
 
-        this.$set(this.originalImages, image.id, { ...imageData });
-        this.$set(this.currentImages, image.id, { ...imageData });
+        this.$set(this.originalImages, image.id, { ...originalData });
+        this.$set(this.currentImages, image.id, { ...currentData });
         this.$set(this.saving, image.id, false);
       });
     },
 
-    onPageChange(paginationData) {
-      if (this.hasAnyChanges) {
-        if (!confirm(this.$t('medienbaecker.alter.unsavedChanges'))) {
-          return;
-        }
-      }
-
-      const page = paginationData.page || paginationData;
-      const filterQuery = this.filterMode ? `?filter=${this.filterMode}` : '';
-      this.$go(`/alter/${page}${filterQuery}`);
+    formatItems(pageImages) {
+      return pageImages.map((image) => ({
+        ...image,
+        text: image.filename,
+        image: { src: image.thumbUrl, back: 'pattern', ratio: '3/2' },
+      }));
     },
 
+    formatBreadcrumbs(breadcrumbs) {
+      return breadcrumbs.map((crumb) => ({
+        text: crumb.title || crumb.label,
+        label: crumb.label || crumb.title,
+        link: crumb.panelUrl || crumb.link,
+      }));
+    },
+
+    getImageById(imageId) {
+      return this.images.find((image) => image.id === imageId);
+    },
+
+    // ---------------------------------------------------------------------
+    // Totals updates
+    // ---------------------------------------------------------------------
+
+    updateUnsavedTotals(wasChanged, isChanged) {
+      if (wasChanged === isChanged) return;
+      this.totals.unsaved += isChanged ? 1 : -1;
+    },
+
+    updateSavedTotals(previousAlt, nextAlt) {
+      const hadAlt = previousAlt && previousAlt.trim() !== '';
+      const hasAlt = nextAlt && nextAlt.trim() !== '';
+
+      if (hadAlt === hasAlt) return;
+      this.totals.saved += hasAlt ? 1 : -1;
+    },
+
+    // ---------------------------------------------------------------------
+    // Save/discard actions
+    // ---------------------------------------------------------------------
+
     async saveImage(imageId) {
+      // Ensure the last keystrokes are persisted to the draft before publishing.
+      await this.flushAltDraftSaveFor(imageId);
+
       this.$set(this.saving, imageId, true);
 
       try {
+        const image = this.getImageById(imageId);
         const current = this.currentImages[imageId];
         const original = this.originalImages[imageId];
+        const wasChanged = this.hasChanges(imageId);
 
-        if (current.alt !== original.alt) {
-          await this.updateField(imageId, 'alt', current.alt);
+        if (!image || !current) return;
+
+        const response = await this.$api.post('alter/publish', {
+          imageId: image.id,
+          alt: current.alt,
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
         }
 
-        if (current.alt_reviewed !== original.alt_reviewed) {
-          await this.updateField(
-            imageId,
-            'alt_reviewed',
-            current.alt_reviewed ? 'true' : '',
-          );
+        if (original) {
+          this.updateSavedTotals(original.alt, current.alt);
         }
 
-        // Update totals based on changes
-        if (current.alt !== original.alt) {
-          const hadAltText = original.alt && original.alt.trim() !== '';
-          const hasAltTextNow = current.alt && current.alt.trim() !== '';
+        this.$set(this.originalImages, imageId, { alt: current.alt });
+        this.updateUnsavedTotals(wasChanged, false);
 
-          if (!hadAltText && hasAltTextNow) {
-            this.totals.withAltText++;
-          } else if (hadAltText && !hasAltTextNow) {
-            this.totals.withAltText--;
-          }
-        }
-
-        if (current.alt_reviewed !== original.alt_reviewed) {
-          if (current.alt_reviewed) {
-            this.totals.reviewed++;
-          } else {
-            this.totals.reviewed--;
-          }
-        }
-
-        this.$set(this.originalImages, imageId, { ...current });
         this.$panel.notification.success();
       } catch (error) {
         this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
@@ -578,176 +770,109 @@ export default {
       }
     },
 
-    async updateField(imageId, field, value) {
-      const response = await this.$api.post('alter/update', {
-        imageId: imageId,
-        field: field,
-        value: value,
-      });
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      return response;
-    },
-
     async saveAllChanges(event) {
-      if (event) {
-        event.preventDefault();
-      }
+      if (event) event.preventDefault();
+
+      // Persist debounced drafts first (so publish sees the latest value)
+      await this.flushAltDraftSaves();
 
       const changedImages = Object.keys(this.currentImages).filter((imageId) =>
         this.hasChanges(imageId),
       );
 
-      if (changedImages.length === 0) {
-        return;
-      }
+      if (changedImages.length === 0) return;
 
       await Promise.all(
         changedImages.map((imageId) => this.saveImage(imageId)),
       );
     },
 
-    discardImage(imageId) {
+    async discardImage(imageId) {
+      const image = this.getImageById(imageId);
       const original = this.originalImages[imageId];
-      if (original) {
-        this.$set(this.currentImages, imageId, { ...original });
+      const current = this.currentImages[imageId];
+
+      if (!image || !original || !current) return;
+
+      // Stop any pending draft save for this image
+      await this.flushAltDraftSaveFor(imageId);
+
+      const wasChanged = this.hasChanges(imageId);
+
+      // Update local state first
+      this.$set(this.currentImages, imageId, { ...original });
+      this.updateUnsavedTotals(wasChanged, this.hasChanges(imageId));
+
+      try {
+        await this.$api.post('alter/discard', { imageId: image.id });
+
+        // Reload only the affected image's data from backend
+        const response = await this.$api.get('alter/images', {
+          page: this.page,
+          filter: this.filterMode || 'all',
+        });
+
+        const updatedImage = response.images.find((img) => img.id === imageId);
+
+        if (updatedImage) {
+          this.$set(this.originalImages, imageId, {
+            alt: updatedImage.altOriginal || '',
+          });
+          this.$set(this.currentImages, imageId, {
+            alt: updatedImage.alt || '',
+          });
+        }
+      } catch (error) {
+        this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
+        console.error(error);
       }
     },
 
-    discardChanges() {
-      Object.keys(this.currentImages).forEach((imageId) => {
-        const original = this.originalImages[imageId];
-        if (original) {
-          this.$set(this.currentImages, imageId, { ...original });
-        }
-      });
+    async discardChanges() {
+      await this.flushAltDraftSaves();
+
+      const changedImages = Object.keys(this.currentImages).filter((imageId) =>
+        this.hasChanges(imageId),
+      );
+
+      if (changedImages.length === 0) return;
+
+      await Promise.all(
+        changedImages.map((imageId) => this.discardImage(imageId)),
+      );
     },
   },
 };
 </script>
 
 <style scoped>
-.k-alter-filter {
-  position: relative;
-  display: inline-flex;
+:deep(.k-breadcrumb ol > li:first-child) .k-breadcrumb-link {
+  padding-inline-start: 0;
 }
 
-.k-loader-container {
+.k-item {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
+  flex-flow: column nowrap;
 }
 
-.page-group {
-  margin-bottom: 3rem;
-}
-
-.page-group__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.page-group__breadcrumb {
-  flex-grow: 1;
-  min-width: 0;
-}
-
-.page-group__badges {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.k-alter-card {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: var(--rounded);
-  height: 100%;
-}
-
-.k-alter-card[data-theme='info'] {
-  --item-color-back: light-dark(
-    var(--color-orange-200),
-    var(--color-orange-1000, var(--color-gray-850))
-  );
-  --item-color-icon: var(--color-orange-600);
-  border-color: var(--color-orange-300);
-}
-
-.k-alter-card__image-link {
+:where(.k-item) .k-link {
   display: block;
+  flex: 0 0 auto;
 }
 
-.k-alter-card__content {
+.k-item-content {
   display: flex;
-  flex-direction: column;
   flex-grow: 1;
-  padding: 1rem;
+  flex-flow: column nowrap;
+  gap: var(--spacing-2);
 }
 
-.k-alter-card__filename {
-  flex-shrink: 0;
-  margin-bottom: 0.75rem;
+.k-form-controls {
+  justify-content: end;
+  display: grid;
 }
 
-.k-alter-card__filename-link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  white-space: nowrap;
-  overflow-x: clip;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.k-alter-card__alt-input {
+.k-field-name-alt {
   flex-grow: 1;
-  margin-bottom: 0.75rem;
-}
-
-.k-alter-card__alt-input :deep(.k-textarea-input) {
-  min-height: 4rem;
-}
-
-.k-alter-card__actions {
-  margin-top: 0.75rem;
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Language dropdown */
-.k-alter-language {
-  position: relative;
-}
-
-.k-alter-language-code {
-  font-size: var(--text-xs);
-  color: var(--color-gray-500);
-  margin-inline-start: var(--spacing-3);
-}
-
-:global(.k-alter-view .k-breadcrumb) {
-  overflow-x: auto;
-}
-
-:global(.k-alter-view .k-breadcrumb ol) {
-  display: flex;
-}
-
-:global(.k-alter-view .k-breadcrumb-dropdown) {
-  display: none;
-}
-
-:global(.k-item[data-selecting='true'][data-selectable='true']) {
-  cursor: pointer;
 }
 </style>

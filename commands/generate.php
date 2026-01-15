@@ -97,9 +97,9 @@ class AltTextGenerator
 	private function showRunMode(): void
 	{
 		if ($this->config['dryRun']) {
-			$this->cli->bold()->blue()->out('DRY RUN MODE - no files will be updated');
+			$this->cli->bold()->blue()->out('DRY RUN MODE - no changes will be written');
 		} else {
-			$this->cli->bold()->yellow()->out('Files will be updated with generated alt texts');
+			$this->cli->bold()->yellow()->out('Generated alt texts will be stored as unsaved changes');
 		}
 	}
 
@@ -242,6 +242,89 @@ class AltTextGenerator
 		return md5_file($image->root());
 	}
 
+	/**
+	 * Reads a version's content array safely. If the language doesn't exist yet,
+	 * fall back to default language content (or empty array).
+	 */
+	private function contentArrayForVersion($image, string $versionId, ?string $languageCode): array
+	{
+		$version = $image->version($versionId);
+
+		try {
+			return $version->content($languageCode)->toArray();
+		} catch (\Throwable $e) {
+			// try default language (multilang), otherwise null
+			$fallback = kirby()->multilang() ? kirby()->defaultLanguage()->code() : null;
+
+			if ($fallback !== $languageCode) {
+				try {
+					return $version->content($fallback)->toArray();
+				} catch (\Throwable $e2) {
+					// ignore
+				}
+			}
+
+			try {
+				return $version->content(null)->toArray();
+			} catch (\Throwable $e3) {
+				return [];
+			}
+		}
+	}
+
+	private function latestAlt($image, ?string $languageCode): string
+	{
+		$data = $this->contentArrayForVersion($image, 'latest', $languageCode);
+		return trim((string)($data['alt'] ?? ''));
+	}
+
+	private function draftAltInfo($image, ?string $languageCode): array
+	{
+		$changes = $image->version('changes');
+
+		if ($changes->exists($languageCode) !== true) {
+			return ['exists' => false, 'hasKey' => false, 'value' => null];
+		}
+
+		$data = $this->contentArrayForVersion($image, 'changes', $languageCode);
+
+		return [
+			'exists' => true,
+			'hasKey' => array_key_exists('alt', $data),
+			'value' => trim((string)($data['alt'] ?? '')),
+		];
+	}
+
+	/**
+	* Auto-fill conditions:
+	* - published/latest alt is empty
+	* - draft alt is not modified (either missing or equal to latest alt)
+	*
+	* This permits filling alt even when other draft fields exist.
+	 */
+	private function shouldAutofillAlt($image, ?string $languageCode): bool
+	{
+		$latestAlt = $this->latestAlt($image, $languageCode);
+		if ($latestAlt !== '') {
+			return false;
+		}
+
+		$draft = $this->draftAltInfo($image, $languageCode);
+
+		// no draft version -> safe to fill
+		if ($draft['exists'] !== true) {
+			return true;
+		}
+
+		// draft exists but alt not touched -> safe to fill
+		if ($draft['hasKey'] !== true) {
+			return true;
+		}
+
+		// alt key exists: only safe if it matches latest (i.e. not edited)
+		return $draft['value'] === $latestAlt;
+	}
+
 	private function imageNeedsProcessing($image, array $languages): bool
 	{
 		if ($this->config['overwrite']) {
@@ -250,9 +333,10 @@ class AltTextGenerator
 
 		foreach ($languages as $language) {
 			$languageCode = $language?->code();
-			$existingAlt = $this->getAltTextForLanguage($image, $languageCode);
 
-			if (!$existingAlt || $existingAlt->isEmpty()) {
+			// Allow processing even if other draft fields exist,
+			// but only if alt itself is not edited in draft.
+			if ($this->shouldAutofillAlt($image, $languageCode)) {
 				return true;
 			}
 		}
@@ -302,19 +386,28 @@ class AltTextGenerator
 							$image = $instanceData['image'];
 							$page = $instanceData['page'];
 
-							$existingAlt = $this->getAltTextForLanguage($image, $languageCode);
-							$needsUpdate = $this->config['overwrite'] || !$existingAlt || $existingAlt->isEmpty();
+							$needsUpdate = $this->config['overwrite'] || $this->shouldAutofillAlt($image, $languageCode);
 
 							if ($needsUpdate) {
 								$updatedImage = $this->updateImageAltText($image, $altText, $languageCode);
 								if ($updatedImage) {
 									$imagesByHash[$hash]['instances'][$key]['image'] = $updatedImage;
 								}
-								$action = $this->config['dryRun'] ? 'Would update' : 'Updated';
+								$action = $this->config['dryRun'] ? 'Would store changes for' : 'Stored changes for';
 								$this->cli->green()->out('    ' . $action . ' ' . $image->filename() . ' (' . $page->id() . ')');
 								$processedFiles++;
 							} else {
-								$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ') - already has alt text');
+								// Explain why the item was skipped (alt exists or alt edited in draft)
+								$latestAlt = $this->latestAlt($image, $languageCode);
+								$draft = $this->draftAltInfo($image, $languageCode);
+
+								if ($latestAlt !== '') {
+									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ') - already has alt text');
+								} elseif ($draft['exists'] === true && $draft['hasKey'] === true) {
+									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ') - alt edited in draft');
+								} else {
+									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ')');
+								}
 							}
 						}
 
@@ -357,25 +450,24 @@ class AltTextGenerator
 			}
 		}
 
-		// If we found existing alt text and not overwriting, use it
+		// If existing alt text is found and not overwriting, use it
 		if ($existingAltText && !$this->config['overwrite']) {
 			$result = ['text' => $existingAltText, 'source' => 'copied from existing'];
 			$this->altTextCache[$cacheKey] = $result;
 			return $result;
 		}
 
-		// Check if any instance needs processing (for when all instances already have alt text)
+		// Only generate if at least one instance should be autofilled
 		$needsProcessing = false;
 		foreach ($instances as $instanceData) {
-			$existingAlt = $this->getAltTextForLanguage($instanceData['image'], $languageCode);
-			if ($this->config['overwrite'] || !$existingAlt || $existingAlt->isEmpty()) {
+			if ($this->config['overwrite'] || $this->shouldAutofillAlt($instanceData['image'], $languageCode)) {
 				$needsProcessing = true;
 				break;
 			}
 		}
 
 		if (!$needsProcessing) {
-			return null; // All instances already have alt text
+			return null; // nothing to do for this language
 		}
 
 		// Generate or translate new alt text
@@ -413,7 +505,7 @@ class AltTextGenerator
 				$defaultAltText = $this->generateAltText($image, kirby()->defaultLanguage());
 				$this->altTextCache[$defaultCacheKey] = $defaultAltText;
 
-				// Update the default language file
+				// Store the default language as draft (alt-only smart write)
 				$image = $this->updateImageAltText($image, $defaultAltText, $defaultLanguageCode);
 			}
 		}
@@ -547,6 +639,12 @@ class AltTextGenerator
 		return trim($result['content'][0]['text'], '"\'');
 	}
 
+	/**
+	 * Alt-only smart write:
+	 * - preserves any other draft fields (merge latest + existing changes)
+	 * - only touches alt
+	 * - if alt was edited in draft and overwrite=false, does nothing
+	 */
 	private function updateImageAltText($image, string $altText, ?string $languageCode)
 	{
 		if ($this->config['dryRun']) {
@@ -554,25 +652,50 @@ class AltTextGenerator
 		}
 
 		return kirby()->impersonate('kirby', function () use ($image, $altText, $languageCode) {
-			if ($languageCode) {
-				return $image->update(['alt' => $altText], $languageCode);
-			} else {
-				return $image->update(['alt' => $altText]);
+			$changes = $image->version('changes');
+
+			// If draft alt was modified and overwrite is false, do not modify it
+			if ($this->config['overwrite'] !== true) {
+				$latestAlt = $this->latestAlt($image, $languageCode);
+				$draft = $this->draftAltInfo($image, $languageCode);
+
+				if ($draft['exists'] === true && $draft['hasKey'] === true && $draft['value'] !== $latestAlt) {
+					return $image;
+				}
 			}
+
+			$latestData = $this->contentArrayForVersion($image, 'latest', $languageCode);
+			$draftData  = $changes->exists($languageCode) ? $this->contentArrayForVersion($image, 'changes', $languageCode) : [];
+
+			// Preserve other draft fields; overwrite alt
+			$merged = array_merge($latestData, $draftData);
+			$merged['alt'] = $altText;
+
+			$changes->save($merged, $languageCode);
+
+			return $image;
 		});
 	}
 
 	private function getAltTextForLanguage($image, ?string $languageCode)
 	{
-		if (!$languageCode) {
-			return $image->alt();
+		$changes = $image->version('changes');
+
+		if ($changes->exists($languageCode)) {
+			// Use toArray + array_key_exists so an intentionally empty draft alt still counts as "present"
+			$draftData = $this->contentArrayForVersion($image, 'changes', $languageCode);
+			if (array_key_exists('alt', $draftData)) {
+				return $changes->content($languageCode)->get('alt');
+			}
 		}
 
-		if (!$image->translation($languageCode)->exists()) {
+		try {
+			// Explicitly read from latest to avoid ambiguity when a changes version exists
+			return $image->version('latest')->content($languageCode)->get('alt');
+		} catch (\Throwable $e) {
+			// If translation doesn't exist yet, treat as missing
 			return null;
 		}
-
-		return $image->content($languageCode)->get('alt');
 	}
 
 	private function showSummary(): void
@@ -584,9 +707,9 @@ class AltTextGenerator
 		$fileText = $this->processed === 1 ? 'file' : 'files';
 
 		if ($this->config['dryRun']) {
-			$this->cli->bold()->blue()->out('Dry run complete: ' . $this->uniqueImagesProcessed . ' ' . $imageText . ' (' . $this->processed . ' ' . $fileText . ') would be updated');
+			$this->cli->bold()->blue()->out('Dry run complete: ' . $this->uniqueImagesProcessed . ' ' . $imageText . ' (' . $this->processed . ' ' . $fileText . ') would be stored as changes');
 		} else {
-			$this->cli->bold()->green()->out('Successfully processed ' . $this->uniqueImagesProcessed . ' ' . $imageText . ' (' . $this->processed . ' ' . $fileText . ' updated)');
+			$this->cli->bold()->green()->out('Successfully processed ' . $this->uniqueImagesProcessed . ' ' . $imageText . ' (' . $this->processed . ' ' . $fileText . ' stored as changes)');
 		}
 
 		if ($this->errors > 0) {
