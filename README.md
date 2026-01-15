@@ -31,13 +31,10 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of 
 
 ### CLI command
 
-I also included an `alter:generate` [CLI command](https://github.com/getkirby/cli) that uses the [Claude API](https://docs.anthropic.com/en/api/overview) to generate alt texts for your images. Generated texts are stored as unsaved changes and need to be reviewed and published in the Panel.
+`kirby alter:generate` [CLI command](https://github.com/getkirby/cli) is included and uses the [Claude API](https://docs.anthropic.com/en/api/overview) to generate alt texts for images. Generated texts are stored as unsaved changes and need to be reviewed and published in the Panel.
 
 - Supports multi-language installations (you can generate for the default language only, or for all languages)
 - Detects duplicate images and saves tokens by only uploading them once, updating all instances at once
-
-> [!WARNING]
-> `--dry-run` still uses the API (it only skips writing changes).
 
 ![Screenshot of a terminal displaying output from "kirby alter:generate"](https://github.com/user-attachments/assets/b82e6e42-de36-4545-b484-240936b2fbeb)
 
@@ -48,6 +45,9 @@ I also included an `alter:generate` [CLI command](https://github.com/getkirby/cl
 - `--dry-run` - Preview changes without updating files (default: `false`)
 - `--verbose` - Show detailed progress information (default: `false`)
 - `--page` - Start from specific page URI, e.g. `"blog"` (optional)
+
+> [!WARNING]
+> `--dry-run` still uses the API (it only skips writing changes).
 
 #### Usage Examples
 
@@ -72,10 +72,10 @@ kirby alter:generate --page "blog/my-article" --overwrite
 return [
 	'medienbaecker.alter' => [
 		'apiKey' => 'claude-api-key', // Set your Claude API key here
-		'model' => 'model-id', // Optional: set a Claude model id/alias
-		'templates' => null, // Optional: restrict to specific file templates (string or array)
-		'prompt' => 'Custom prompt', // Optional: custom prompt for alt text generation
-		'maxLength' => false, // Optional: set a max length (e.g. 125) for alt texts in the panel counter
+		'model' => 'model-id',        // Optional: set a Claude model id/alias
+		'templates' => null,          // Optional: restrict to specific file templates (string or array)
+		'prompt' => 'Custom prompt',  // Optional: custom prompt for alt text generation
+		'maxLength' => false,         // Optional: set a max length (e.g. 125) for alt texts in the panel counter
 	]
 ];
 ```
