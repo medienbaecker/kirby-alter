@@ -58,9 +58,24 @@ Kirby::plugin('medienbaecker/alter', [
 					$filter = $request->get('filter', 'all');
 					$limit = 100;
 
-					// Get current language from panel
-					$currentLanguage = kirby()->language();
-					$languageCode = $currentLanguage ? $currentLanguage->code() : null;
+					// Get current language from panel (may be null on single-language sites)
+					$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
+					$defaultLanguageCode = kirby()->multilang() ? kirby()->defaultLanguage()->code() : null;
+					$contentArray = static function ($model, ?string $code) {
+						return $code === null
+							? $model->content()->toArray()
+							: $model->content($code)->toArray();
+					};
+					$versionExists = static function ($version, ?string $code): bool {
+						return $code === null
+							? $version->exists()
+							: $version->exists($code);
+					};
+					$versionContentArray = static function ($version, ?string $code): array {
+						return $code === null
+							? $version->content()->toArray()
+							: $version->content($code)->toArray();
+					};
 
 					// Get template filter from options
 					$allowedTemplates = kirby()->option('medienbaecker.alter.templates');
@@ -83,11 +98,17 @@ Kirby::plugin('medienbaecker/alter', [
 									}
 								}
 
-								$latestContent = $image->content($languageCode)->toArray();
+								$hasTranslation = $languageCode === null
+									? true
+									: $image->translation($languageCode)->exists();
+
+								$latestContent = $hasTranslation
+									? $contentArray($image, $languageCode)
+									: [];
 								$latestAlt = (string)($latestContent['alt'] ?? '');
 								$changes = $image->version('changes');
-								$changesContent = $changes->exists($languageCode)
-									? $changes->content($languageCode)->toArray()
+								$changesContent = $versionExists($changes, $languageCode)
+									? $versionContentArray($changes, $languageCode)
 									: [];
 
 								$currentAlt = array_key_exists('alt', $changesContent)
@@ -95,7 +116,20 @@ Kirby::plugin('medienbaecker/alter', [
 									: $latestAlt;
 								$hasChanges = $currentAlt !== $latestAlt;
 
-								$changesPath = $sitePage->panel()->path() . '/files/' . $image->filename();
+									$changesPath = $sitePage->panel()->path() . '/files/' . $image->filename();
+
+								// Effective default-language alt (used as placeholder in panel)
+								$defaultAlt = $currentAlt;
+								if ($defaultLanguageCode !== null && $defaultLanguageCode !== $languageCode) {
+									$defaultLatest = $contentArray($image, $defaultLanguageCode);
+									$defaultAlt = (string)($defaultLatest['alt'] ?? '');
+									$defaultChangesContent = $versionExists($changes, $defaultLanguageCode)
+										? $versionContentArray($changes, $defaultLanguageCode)
+										: [];
+									if (array_key_exists('alt', $defaultChangesContent)) {
+										$defaultAlt = (string)($defaultChangesContent['alt'] ?? '');
+									}
+								}
 
 								// Check if any parent pages are drafts
 								$hasParentDrafts = $sitePage->parents()->filter(fn($p) => $p->isDraft())->isNotEmpty();
@@ -147,6 +181,7 @@ Kirby::plugin('medienbaecker/alter', [
 									'breadcrumbs' => $breadcrumbs,
 									'sortKey' => $sortKey,
 									'language' => $languageCode,
+									'altDefault' => $defaultAlt,
 								];
 							}
 						}
@@ -193,6 +228,7 @@ Kirby::plugin('medienbaecker/alter', [
 
 					return [
 						'images' => $paginatedImages,
+						'defaultLanguage' => $defaultLanguageCode,
 						'pagination' => [
 							'page' => (int)$page,
 							'pages' => $totalPages,
@@ -231,30 +267,45 @@ Kirby::plugin('medienbaecker/alter', [
 						throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
 					}
 
-					// Get current language from panel
-					$currentLanguage = kirby()->language();
-					$languageCode = $currentLanguage ? $currentLanguage->code() : null;
+						// Get current language from panel (may be null on single-language sites)
+						$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
 
-					// 1) Directly update the file with the alt text (publish it)
-					$image = $image->update(['alt' => $alt], $languageCode);
+						// 1) Directly update the file with the alt text (publish it)
+						$image = $image->update(['alt' => $alt], $languageCode);
 
-					// 2) Remove alt from the changes version (if it exists) to clean up
-					$changes = $image->version('changes');
-					if ($changes->exists($languageCode)) {
-						$changesContent = $changes->content($languageCode)->toArray();
-						unset($changesContent['alt']);
+						// 2) Remove alt from the changes version (if it exists) to clean up
+						$changes = $image->version('changes');
+						$hasChanges = $languageCode === null
+							? $changes->exists()
+							: $changes->exists($languageCode);
 
-						if (empty($changesContent)) {
-							// No other draft fields, delete the changes version
-							$changes->delete($languageCode);
-						} else {
-							// Keep other draft fields, just remove alt
-							$changes->replace($changesContent, $languageCode);
-                        // Now, restore alt in the draft if other fields exist
-                        $changesContent['alt'] = $alt;
-                        $changes->replace($changesContent, $languageCode);
+						if ($hasChanges) {
+							$changesContent = $languageCode === null
+								? $changes->content()->toArray()
+								: $changes->content($languageCode)->toArray();
+							unset($changesContent['alt']);
+
+							if (empty($changesContent)) {
+								// No other draft fields, delete the changes version
+								$languageCode === null
+									? $changes->delete()
+									: $changes->delete($languageCode);
+							} else {
+								// Keep other draft fields, just remove alt
+								if ($languageCode === null) {
+									$changes->replace($changesContent);
+								} else {
+									$changes->replace($changesContent, $languageCode);
+								}
+								// Now, restore alt in the draft if other fields exist
+								$changesContent['alt'] = $alt;
+								if ($languageCode === null) {
+									$changes->replace($changesContent);
+								} else {
+									$changes->replace($changesContent, $languageCode);
+								}
+							}
 						}
-					}
 
 					return ['success' => true];
 				}
@@ -280,22 +331,33 @@ Kirby::plugin('medienbaecker/alter', [
 						throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
 					}
 
-					// Get current language from panel
-					$currentLanguage = kirby()->language();
-					$languageCode = $currentLanguage ? $currentLanguage->code() : null;
+					// Get current language from panel (may be null on single-language sites)
+					$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
 
 					$changes = $image->version('changes');
-					if ($changes->exists($languageCode) !== true) {
+					$hasChanges = $languageCode === null
+						? $changes->exists()
+						: $changes->exists($languageCode);
+
+					if ($hasChanges !== true) {
 						return ['success' => true];
 					}
 
-					$changesContent = $changes->content($languageCode)->toArray();
+					$changesContent = $languageCode === null
+						? $changes->content()->toArray()
+						: $changes->content($languageCode)->toArray();
 					unset($changesContent['alt']);
 
 					if (empty($changesContent) === true) {
-						$changes->delete($languageCode);
+						$languageCode === null
+							? $changes->delete()
+							: $changes->delete($languageCode);
 					} else {
-						$changes->replace($changesContent, $languageCode);
+						if ($languageCode === null) {
+							$changes->replace($changesContent);
+						} else {
+							$changes->replace($changesContent, $languageCode);
+						}
 					}
 
 					return ['success' => true];
@@ -325,25 +387,41 @@ Kirby::plugin('medienbaecker/alter', [
 							return ['error' => t('medienbaecker.alter.imageNotFound')];
 						}
 
-						// Save alt to draft changes (always create or update changes version)
-						$currentLanguage = kirby()->language();
-						$languageCode = $currentLanguage ? $currentLanguage->code() : null;
-						$changes = $image->version('changes');
-						$changesContent = $changes->exists($languageCode)
-							? $changes->content($languageCode)->toArray()
-							: [];
-						// If there is no changes version yet, initialize it from the
-						// published/latest content so we don't lose other fields
-						if ($changes->exists($languageCode) !== true) {
-							$latestContent = $image->content($languageCode)->toArray();
-							$changesContent = is_array($latestContent) ? $latestContent : [];
-							$changesContent['alt'] = $value;
-							$changes->create($changesContent, $languageCode);
-						} else {
-							$changesContent = $changes->content($languageCode)->toArray();
-							$changesContent['alt'] = $value;
-							$changes->replace($changesContent, $languageCode);
-						}
+							// Save alt to draft changes (always create or update changes version)
+							$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
+							$changes = $image->version('changes');
+							$hasChanges = $languageCode === null
+								? $changes->exists()
+								: $changes->exists($languageCode);
+							$changesContent = $hasChanges
+								? ($languageCode === null
+									? $changes->content()->toArray()
+									: $changes->content($languageCode)->toArray())
+								: [];
+							// If there is no changes version yet, initialize it from the
+							// published/latest content so we don't lose other fields
+							if ($hasChanges !== true) {
+								$latestContent = $languageCode === null
+									? $image->content()->toArray()
+									: $image->content($languageCode)->toArray();
+								$changesContent = is_array($latestContent) ? $latestContent : [];
+								$changesContent['alt'] = $value;
+								if ($languageCode === null) {
+									$changes->create($changesContent);
+								} else {
+									$changes->create($changesContent, $languageCode);
+								}
+							} else {
+								$changesContent = $languageCode === null
+									? $changes->content()->toArray()
+									: $changes->content($languageCode)->toArray();
+								$changesContent['alt'] = $value;
+								if ($languageCode === null) {
+									$changes->replace($changesContent);
+								} else {
+									$changes->replace($changesContent, $languageCode);
+								}
+							}
 
 						return ['success' => true, 'message' => t('medienbaecker.alter.success')];
 					} catch (Exception $e) {

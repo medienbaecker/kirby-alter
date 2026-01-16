@@ -1,6 +1,6 @@
 # Kirby Alter
 
-Generate and review alt texts for images on [Kirby CMS](https://getkirby.com/).
+Generate, edit and review alt texts for images on [Kirby CMS](https://getkirby.com/).
 
 ## Requirements
 
@@ -22,10 +22,14 @@ composer require medienbaecker/kirby-alter
 
 The plugin provides a custom Panel view for reviewing and managing alt texts of images across all pages in your site.
 
-- Edits are stored as Kirby draft changes (unsaved changes via the `changes` version)
-- Changes can be saved (publish) or discarded per image or in bulk
-- Sections show a badge with the number of images that currently have draft changes
-- Filter modes help to focus on **All / Saved / Unsaved / Missing**
+- Filter modes to focus on **All / Saved / Unsaved / Missing**
+- Shows the total number of drafts and saved alt texts
+- Language toggle for switching between languages
+- Sections for each page with breadcrumb, image count, and status
+- Save or discard changes per image or in bulk
+
+> [!INFO]
+> On multilingual pages, the default alt text appears as a placeholder in non-default languages, making it easier to spot missing translations.
 
 ![Screenshot of the custom panel view with several cat images and alt texts](https://github.com/user-attachments/assets/6136bebe-ec70-4a33-ab61-80a994af237c)
 
@@ -33,7 +37,7 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of 
 
 `kirby alter:generate` [CLI command](https://github.com/getkirby/cli) is included and uses the [Claude API](https://docs.anthropic.com/en/api/overview) to generate alt texts for images. Generated texts are stored as unsaved changes and need to be reviewed and published in the Panel.
 
-- Supports multi-language installations (you can generate for the default language only, or for all languages)
+- Supports multi-language installations (run for default only, a specific language, or all languages)
 - Detects duplicate images and saves tokens by only uploading them once, updating all instances at once
 
 ![Screenshot of a terminal displaying output from "kirby alter:generate"](https://github.com/user-attachments/assets/b82e6e42-de36-4545-b484-240936b2fbeb)

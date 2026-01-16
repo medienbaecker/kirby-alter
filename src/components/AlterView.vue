@@ -50,25 +50,44 @@
         </k-button>
 
         <template v-if="languages.length > 1">
-          <k-button
-            :dropdown="true"
-            icon="translate"
-            variant="filled"
-            size="sm"
-            :text="currentLanguage ? currentLanguage.toUpperCase() : ''"
-            @click="$refs.languageDropdown.toggle()"
-          />
-          <k-dropdown-content ref="languageDropdown" align-x="end">
-            <k-dropdown-item
-              v-for="lang in languages"
-              :key="lang.code"
-              :current="currentLanguage === lang.code"
-              @click="onLanguageChange(lang.code)"
+          <div class="k-languages-dropdown">
+            <k-button
+              :dropdown="true"
+              icon="translate"
+              variant="filled"
+              size="sm"
+              :responsive="'text'"
+              :text="currentLanguage ? currentLanguage.toUpperCase() : ''"
+              :aria-label="languageButtonLabel"
+              :title="languageButtonLabel"
+              @click="$refs.languageDropdown.toggle()"
+            />
+            <k-dropdown-content
+              ref="languageDropdown"
+              align-x="end"
+              align-y="bottom"
+              theme="dark"
             >
-              {{ lang.name }}
-              <span>{{ lang.code.toUpperCase() }}</span>
-            </k-dropdown-item>
-          </k-dropdown-content>
+              <k-dropdown-item
+                v-for="lang in languages"
+                :key="lang.code"
+                class="k-languages-dropdown-item"
+                :current="currentLanguage === lang.code"
+                :aria-label="lang.name"
+                :title="lang.name"
+                @click="onLanguageChange(lang.code)"
+              >
+                <span class="k-button-text">
+                  {{ lang.name }}
+                  <span class="k-languages-dropdown-item-info">
+                    <span class="k-languages-dropdown-item-code">
+                      {{ lang.code.toUpperCase() }}
+                    </span>
+                  </span>
+                </span>
+              </k-dropdown-item>
+            </k-dropdown-content>
+          </div>
         </template>
 
         <k-form-controls v-if="hasAnyChanges">
@@ -184,7 +203,7 @@
                   @focusin.native="setActiveImage(item.id)"
                   @mousedown.native="setActiveImage(item.id)"
                   @keydown.native="onAltTextKeydown(item.id, $event)"
-                  :placeholder="$t('medienbaecker.alter.noAltText')"
+                  :placeholder="placeholderFor(item)"
                   :buttons="false"
                   :counter="true"
                   :maxlength="maxLength || null"
@@ -238,6 +257,13 @@ export default {
       type: Number,
       default: 1,
     },
+    languageButtonLabel() {
+      const lang = this.languages.find((l) => l.code === this.currentLanguage);
+      if (lang) {
+        return `${lang.name} (${lang.code.toUpperCase()})`;
+      }
+      return this.$t('language');
+    },
     maxLength: {
       type: [Number, Boolean],
       default: false,
@@ -248,6 +274,7 @@ export default {
     return {
       // API data + derived UI data
       images: [],
+      defaultLanguage: null,
       pagination: { page: 1, pages: 1, total: 0, limit: 100 },
       totals: { unsaved: 0, saved: 0, total: 0 },
 
@@ -391,12 +418,20 @@ export default {
   created() {
     const urlParams = new URLSearchParams(window.location.search);
     const filterParam = urlParams.get('filter');
+    const languageParam = urlParams.get('language');
 
     if (
       filterParam &&
       ['with_alt', 'without_alt', 'unsaved'].includes(filterParam)
     ) {
       this.filterMode = filterParam;
+    }
+
+    if (languageParam) {
+      const match = this.languages.find((l) => l.code === languageParam);
+      if (match) {
+        this.$panel.language = match;
+      }
     }
 
     this.loadImages(this.page);
@@ -609,23 +644,20 @@ export default {
       this.filterMode = value;
       this.loadImages(1);
 
-      const filterQuery = value ? `?filter=${value}` : '';
-      this.$go(`/alter/1${filterQuery}`);
+      this.$go(this.buildRoute(1));
     },
 
     async onLanguageChange(code) {
       await this.flushAltDraftSaves();
 
-      this.$panel.language = this.$panel.languages.find((l) => l.code === code);
-      this.loadImages(this.page);
+      this.$go(this.buildRoute(this.page, code));
     },
 
     async onPageChange(paginationData) {
       await this.flushAltDraftSaves();
 
       const page = paginationData.page || paginationData;
-      const filterQuery = this.filterMode ? `?filter=${this.filterMode}` : '';
-      this.$go(`/alter/${page}${filterQuery}`);
+      this.$go(this.buildRoute(page));
     },
 
     // ---------------------------------------------------------------------
@@ -651,6 +683,14 @@ export default {
     // ---------------------------------------------------------------------
     // Data loading + formatting
     // ---------------------------------------------------------------------
+    buildRoute(page, languageOverride = null) {
+      const params = [];
+      if (this.filterMode) params.push(`filter=${this.filterMode}`);
+      const lang = languageOverride || this.currentLanguage;
+      if (lang) params.push(`language=${lang}`);
+      const query = params.length ? `?${params.join('&')}` : '';
+      return `/alter/${page}${query}`;
+    },
 
     async loadImages(page = 1) {
       this.loading = true;
@@ -662,6 +702,7 @@ export default {
         });
 
         this.images = response.images;
+        this.defaultLanguage = response.defaultLanguage || null;
         this.pagination = response.pagination;
         this.totals = response.totals;
 
@@ -730,6 +771,18 @@ export default {
     // ---------------------------------------------------------------------
     // Save/discard actions
     // ---------------------------------------------------------------------
+    placeholderFor(item) {
+      const currentCode = this.currentLanguage;
+      const defaultCode = this.defaultLanguage;
+      if (!currentCode || currentCode === defaultCode) {
+        return this.$t('medienbaecker.alter.noAltText');
+      }
+
+      const defaultAlt = item.altDefault || '';
+      return defaultAlt.trim() !== ''
+        ? defaultAlt
+        : this.$t('medienbaecker.alter.noAltText');
+    },
 
     async saveImage(imageId) {
       // Ensure the last keystrokes are persisted to the draft before publishing.
@@ -862,14 +915,15 @@ export default {
 
 .k-item-content {
   display: flex;
-  flex-grow: 1;
   flex-flow: column nowrap;
+  flex-grow: 1;
   gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3) var(--spacing-3);
 }
 
 .k-form-controls {
-  justify-content: end;
   display: grid;
+  justify-content: end;
 }
 
 .k-field-name-alt {

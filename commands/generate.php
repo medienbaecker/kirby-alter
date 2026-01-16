@@ -147,8 +147,16 @@ class AltTextGenerator
 
 		$options = [
 			'default' => 'Default language only (' . kirby()->defaultLanguage()->name() . ')',
-			'all' => 'All ' . count($languages) . ' languages'
 		];
+
+		foreach ($languages as $language) {
+			if ($language->isDefault()) {
+				continue;
+			}
+			$options['lang:' . $language->code()] = 'Only ' . $language->name();
+		}
+
+		$options['all'] = 'All ' . count($languages) . ' languages';
 
 		$choice = $this->cli->radio('Choose your option:', $options)->prompt();
 
@@ -159,6 +167,21 @@ class AltTextGenerator
 			return $selected;
 		}
 
+		if ($choice === 'default') {
+			$this->cli->green()->out('Will generate alt texts for default language only: ' . kirby()->defaultLanguage()->name());
+			return [kirby()->defaultLanguage()];
+		}
+
+		if (str_starts_with($choice, 'lang:')) {
+			$code = substr($choice, 5);
+			$lang = $languages->find($code);
+			if ($lang) {
+				$this->cli->green()->out('Will generate alt texts for: ' . $lang->name());
+				return [$lang];
+			}
+		}
+
+		// Fallback to default if choice is unexpected
 		$this->cli->green()->out('Will generate alt texts for default language only: ' . kirby()->defaultLanguage()->name());
 		return [kirby()->defaultLanguage()];
 	}
@@ -242,6 +265,20 @@ class AltTextGenerator
 		return md5_file($image->root());
 	}
 
+	private function versionExists($version, ?string $languageCode): bool
+	{
+		return $languageCode === null
+			? $version->exists()
+			: $version->exists($languageCode);
+	}
+
+	private function versionContent($version, ?string $languageCode)
+	{
+		return $languageCode === null
+			? $version->content()
+			: $version->content($languageCode);
+	}
+
 	/**
 	 * Reads a version's content array safely. If the language doesn't exist yet,
 	 * fall back to default language content (or empty array).
@@ -251,21 +288,23 @@ class AltTextGenerator
 		$version = $image->version($versionId);
 
 		try {
-			return $version->content($languageCode)->toArray();
+			return $this->versionContent($version, $languageCode)->toArray();
 		} catch (\Throwable $e) {
 			// try default language (multilang), otherwise null
-			$fallback = kirby()->multilang() ? kirby()->defaultLanguage()->code() : null;
+			$fallbackLanguage = kirby()->multilang() && kirby()->defaultLanguage()
+				? kirby()->defaultLanguage()->code()
+				: null;
 
-			if ($fallback !== $languageCode) {
+			if ($fallbackLanguage !== null && $fallbackLanguage !== $languageCode) {
 				try {
-					return $version->content($fallback)->toArray();
+					return $version->content($fallbackLanguage)->toArray();
 				} catch (\Throwable $e2) {
 					// ignore
 				}
 			}
 
 			try {
-				return $version->content(null)->toArray();
+				return $this->versionContent($version, null)->toArray();
 			} catch (\Throwable $e3) {
 				return [];
 			}
@@ -282,7 +321,7 @@ class AltTextGenerator
 	{
 		$changes = $image->version('changes');
 
-		if ($changes->exists($languageCode) !== true) {
+		if ($this->versionExists($changes, $languageCode) !== true) {
 			return ['exists' => false, 'hasKey' => false, 'value' => null];
 		}
 
@@ -349,6 +388,7 @@ class AltTextGenerator
 		$processedFiles = 0;
 		$errors = 0;
 		$uniqueImagesProcessed = 0;
+		$allLanguages = kirby()->multilang() ? kirby()->languages()->values() : [];
 
 		// Sort hash groups by first occurrence order to match panel view
 		uasort($imagesByHash, function ($a, $b) {
@@ -369,14 +409,14 @@ class AltTextGenerator
 
 				// Track unique images processed (only count once per image, not per language)
 				if ($language === reset($languages)) {
-					$uniqueImagesProcessed++;
-				}
+						$uniqueImagesProcessed++;
+					}
 
-				$this->cli->out('');
-				$this->cli->bold()->out('  ' . $firstInstance->filename() . ' (' . count($instances) . ' pages)');
+					$this->cli->out('');
+					$this->cli->bold()->out('  ' . $firstInstance->filename() . ' (' . count($instances) . ' pages)');
 
-				try {
-					$result = $this->generateOrGetAltText($firstInstance, $hash, $language, $instances);
+					try {
+						$result = $this->generateOrGetAltText($firstInstance, $hash, $language, $instances, $allLanguages);
 
 					if ($result) {
 						$altText = $result['text'];
@@ -431,7 +471,7 @@ class AltTextGenerator
 		$this->uniqueImagesProcessed = $uniqueImagesProcessed;
 	}
 
-	private function generateOrGetAltText($image, string $hash, $language, array $instances): ?array
+	private function generateOrGetAltText($image, string $hash, $language, array $instances, array $allLanguages): ?array
 	{
 		$languageCode = $language?->code();
 		$cacheKey = $hash . '_' . ($languageCode ?? 'default');
@@ -475,12 +515,47 @@ class AltTextGenerator
 			$altText = $this->translateAltText($image, $hash, $language, $instances);
 			$result = ['text' => $altText, 'source' => 'translated from ' . kirby()->defaultLanguage()->name()];
 		} else {
-			$altText = $this->generateAltText($image, $language);
-			$result = ['text' => $altText, 'source' => 'generated from image'];
+			// Default language path: if another language already has alt, prefer translating it
+			$existingOtherAlt = $this->findAltInOtherLanguages($instances, $allLanguages, $language);
+			if ($existingOtherAlt) {
+				$altText = $this->translateAltTextFromExisting($existingOtherAlt, $language);
+				$result = ['text' => $altText, 'source' => 'translated from existing alt'];
+			} else {
+				$altText = $this->generateAltText($image, $language);
+				$result = ['text' => $altText, 'source' => 'generated from image'];
+			}
 		}
 
 		$this->altTextCache[$cacheKey] = $result;
 		return $result;
+	}
+
+	private function findAltInOtherLanguages(array $instances, array $languages, $targetLanguage): ?string
+	{
+		$targetCode = $targetLanguage?->code();
+
+		foreach ($languages as $language) {
+			if ($language->code() === $targetCode) {
+				continue;
+			}
+
+			$code = $language->code();
+
+			foreach ($instances as $instanceData) {
+				$existingAlt = $this->getAltTextForLanguage($instanceData['image'], $code);
+				if ($existingAlt) {
+					$value = method_exists($existingAlt, 'isNotEmpty')
+						? ($existingAlt->isNotEmpty() ? $existingAlt->value() : '')
+						: (string)$existingAlt;
+
+					if (trim($value) !== '') {
+						return $value;
+					}
+				}
+			}
+		}
+
+		return null;
 	}
 
 	private function translateAltText($image, string $hash, $language, array $instances): string
@@ -550,6 +625,14 @@ class AltTextGenerator
 		}
 
 		return $this->callClaudeApiWithImage($imageData, $mimeType, $prompt);
+	}
+
+	private function translateAltTextFromExisting(string $text, $targetLanguage): string
+	{
+		$targetName = $targetLanguage ? $targetLanguage->name() : (kirby()->multilang() ? kirby()->defaultLanguage()->name() : 'default language');
+		$prompt = 'Translate this alt text to ' . $targetName . '. Keep it concise and descriptive. Only return the translated alt text, nothing else: "' . $text . '"';
+
+		return $this->callClaudeApi($prompt);
 	}
 
 	private function callClaudeApi(string $prompt): string
@@ -652,46 +735,50 @@ class AltTextGenerator
 		}
 
 		return kirby()->impersonate('kirby', function () use ($image, $altText, $languageCode) {
-			$changes = $image->version('changes');
+				$changes = $image->version('changes');
 
-			// If draft alt was modified and overwrite is false, do not modify it
-			if ($this->config['overwrite'] !== true) {
-				$latestAlt = $this->latestAlt($image, $languageCode);
+				// If draft alt was modified and overwrite is false, do not modify it
+				if ($this->config['overwrite'] !== true) {
+					$latestAlt = $this->latestAlt($image, $languageCode);
 				$draft = $this->draftAltInfo($image, $languageCode);
 
 				if ($draft['exists'] === true && $draft['hasKey'] === true && $draft['value'] !== $latestAlt) {
 					return $image;
+					}
 				}
-			}
 
-			$latestData = $this->contentArrayForVersion($image, 'latest', $languageCode);
-			$draftData  = $changes->exists($languageCode) ? $this->contentArrayForVersion($image, 'changes', $languageCode) : [];
+				$latestData = $this->contentArrayForVersion($image, 'latest', $languageCode);
+				$draftData  = $this->versionExists($changes, $languageCode)
+					? $this->contentArrayForVersion($image, 'changes', $languageCode)
+					: [];
 
-			// Preserve other draft fields; overwrite alt
-			$merged = array_merge($latestData, $draftData);
-			$merged['alt'] = $altText;
+				// Preserve other draft fields; overwrite alt
+				$merged = array_merge($latestData, $draftData);
+				$merged['alt'] = $altText;
 
-			$changes->save($merged, $languageCode);
+				$languageCode === null
+					? $changes->save($merged)
+					: $changes->save($merged, $languageCode);
 
-			return $image;
-		});
+				return $image;
+			});
 	}
 
 	private function getAltTextForLanguage($image, ?string $languageCode)
 	{
 		$changes = $image->version('changes');
 
-		if ($changes->exists($languageCode)) {
+		if ($this->versionExists($changes, $languageCode)) {
 			// Use toArray + array_key_exists so an intentionally empty draft alt still counts as "present"
 			$draftData = $this->contentArrayForVersion($image, 'changes', $languageCode);
 			if (array_key_exists('alt', $draftData)) {
-				return $changes->content($languageCode)->get('alt');
+				return $this->versionContent($changes, $languageCode)->get('alt');
 			}
 		}
 
 		try {
 			// Explicitly read from latest to avoid ambiguity when a changes version exists
-			return $image->version('latest')->content($languageCode)->get('alt');
+			return $this->versionContent($image->version('latest'), $languageCode)->get('alt');
 		} catch (\Throwable $e) {
 			// If translation doesn't exist yet, treat as missing
 			return null;
