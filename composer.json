@@ -10,11 +10,24 @@
         }
     ],
     "require": {
+        "php": "^8.2",
         "getkirby/composer-installer": "^1.2"
     },
     "config": {
         "allow-plugins": {
             "getkirby/composer-installer": true
         }
+    },
+    "archive": {
+        "exclude": [
+            "/.editorconfig",
+            "/.gitattributes",
+            "/.gitignore",
+            "/composer.lock",
+            "/node_modules",
+            "/package-lock.json",
+            "/package.json",
+            "/src"
+        ]
     }
 }

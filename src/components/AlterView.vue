@@ -1236,6 +1236,7 @@ export default {
     },
 
     async discardChanges() {
+      this.$panel.dialog.close();
       await this.flushAltDraftSaves();
 
       const changedImages = Object.keys(this.currentImages).filter((imageId) =>

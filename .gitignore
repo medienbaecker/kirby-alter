@@ -1,8 +1,22 @@
 # OS files
 .DS_Store
 
-# npm modules
-/node_modules
+# Editors
+.idea/
+.vscode/
 
-# Composer files
-/vendor
+# PHP tooling
+.php-cs-fixer.cache
+.phpunit.cache/
+.phpunit.result.cache
+
+# Composer
+vendor/
+
+# Node
+node_modules/
+.pnpm-store/
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
