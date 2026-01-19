@@ -51,7 +51,7 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of 
 - `--verbose` - Show detailed progress information (default: `false`)
 - `--page` - Start from specific page URI, e.g. `"blog"` (optional)
 
-> [!WARNING]  
+> [!WARNING]
 > `--dry-run` still uses the API (it only skips writing changes).
 
 #### Usage Examples
