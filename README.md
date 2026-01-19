@@ -27,6 +27,7 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of 
 - Language toggle for switching between languages
 - Sections for each page with breadcrumb, image count, and status
 - Save or discard changes per image or in bulk
+- Optional AI generation buttons (configurable) to draft alt texts for the current list or a single image
 
 > [!NOTE]
 > On multilingual pages, the default alt text appears as a placeholder in non-default languages, making it easier to spot missing translations.
@@ -75,14 +76,17 @@ kirby alter:generate --page "blog/my-article" --overwrite
 // site/config/config.php
 return [
 	'medienbaecker.alter' => [
-		'apiKey' => 'claude-api-key', // Set your Claude API key here
-		'model' => 'model-id',        // Optional: set a Claude model id/alias
-		'templates' => null,          // Optional: restrict to specific file templates (string or array)
-		'prompt' => 'Custom prompt',  // Optional: custom prompt for alt text generation
-		'maxLength' => false,         // Optional: set a max length (e.g. 125) for alt texts in the panel counter
+		'api.key' => 'claude-api-key', // Set your Claude API key here
+		'api.model' => 'model-id',     // Optional: set a Claude model id/alias
+		'templates' => null,           // Optional: restrict to specific file templates (string or array)
+		'prompt' => 'Custom prompt',   // Optional: custom prompt for alt text generation
+		'maxLength' => false,          // Optional: set a max length (e.g. 125) for alt texts in the panel counter
+		'panel.generation' => false,   // Show AI generation buttons in the Panel (default: CLI-only)
 	]
 ];
 ```
+
+Enable `panel.generation` to surface a "Generate all" button in the Alter header and a per-image "Generate alt text" button. A dropdown lets you choose whether to translate for the current language only or for all site languages. Panel generation never overwrites existing alt texts; it only fills missing ones as drafts.
 
 > [!TIP]
 > Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
@@ -113,3 +117,7 @@ You can override this with your own string or callback:
 	return 'Describe this image. Context: "' . $file->page()->text()->excerpt(100) . '"';
 }
 ```
+
+## Translations
+
+The plugin ships its own Panel translations in `translations/` for all Kirby core locales. Missing locales fall back automatically via Kirby’s I18n fallback mechanism.

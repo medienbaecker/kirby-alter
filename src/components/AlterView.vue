@@ -3,54 +3,87 @@
     <k-header>
       {{ $t('medienbaecker.alter.title') }}
       <template #buttons>
-        <k-button
-          :dropdown="true"
-          icon="filter"
-          variant="filled"
-          size="sm"
-          :text="currentFilterLabel"
-          @click="$refs.filterDropdown.toggle()"
-        />
-        <k-dropdown-content ref="filterDropdown" align-x="end">
-          <k-dropdown-item
-            :current="filterMode === null"
-            @click="onFilterChange(null)"
+        <k-button-group class="k-view-buttons">
+          <div class="k-view-button">
+            <k-button
+              :dropdown="true"
+              icon="filter"
+              variant="filled"
+              size="sm"
+              :responsive="'text'"
+              :text="currentFilterLabel"
+              @click="toggleDropdown('filterDropdown')"
+            />
+            <k-dropdown-content ref="filterDropdown" align-x="end">
+              <k-dropdown-item
+                icon="filter"
+                :current="filterMode === null"
+                @click="onFilterChange(null)"
+              >
+                {{ $t('medienbaecker.alter.filter.all') }}
+              </k-dropdown-item>
+              <k-dropdown-item
+                v-for="option in filterOptions"
+                :key="option.value"
+                icon="filter"
+                :current="filterMode === option.value"
+                @click="onFilterChange(option.value)"
+              >
+                {{ option.text }}
+              </k-dropdown-item>
+            </k-dropdown-content>
+          </div>
+
+          <div v-if="totalImagesCount > 0" class="k-view-button">
+            <k-button
+              variant="filled"
+              size="sm"
+              icon="check"
+              element="span"
+              :theme="isComplete ? 'positive' : null"
+              :badge="
+                unsavedImagesCount > 0
+                  ? { theme: 'orange', text: unsavedImagesCount }
+                  : null
+              "
+            >
+              {{ `${savedImagesCount}/${totalImagesCount}` }}
+            </k-button>
+          </div>
+
+          <div v-if="panelGenerationEnabled" class="k-view-button">
+            <k-button
+              :dropdown="true"
+              icon="ai"
+              variant="filled"
+              theme="orange-icon"
+              size="sm"
+              :responsive="'text'"
+              :text="generationDropdownLabel"
+              :title="generationDropdownLabel"
+              :disabled="images.length === 0 || generatingAll"
+              @click="toggleDropdown('scopeDropdown')"
+            />
+            <k-dropdown-content
+              v-if="images.length > 0"
+              ref="scopeDropdown"
+              align-x="end"
+            >
+              <k-dropdown-item
+                v-for="scope in generationScopes"
+                icon="aiGenerateText"
+                :key="scope.value"
+                @click="onGenerateAll(scope.value)"
+              >
+                {{ scope.text }}
+              </k-dropdown-item>
+            </k-dropdown-content>
+          </div>
+
+          <div
+            v-if="languages.length > 1"
+            class="k-view-button k-languages-dropdown k-languages-dropdown"
           >
-            {{ $t('medienbaecker.alter.filter.all') }}
-          </k-dropdown-item>
-          <k-dropdown-item
-            v-for="option in filterOptions"
-            :key="option.value"
-            :current="filterMode === option.value"
-            @click="onFilterChange(option.value)"
-          >
-            {{ option.text }}
-          </k-dropdown-item>
-        </k-dropdown-content>
-
-        <k-button
-          v-if="totalImagesCount > 0"
-          variant="filled"
-          size="sm"
-          icon="edit"
-          element="span"
-        >
-          {{ `${unsavedImagesCount}/${totalImagesCount}` }}
-        </k-button>
-
-        <k-button
-          v-if="totalImagesCount > 0"
-          variant="filled"
-          size="sm"
-          icon="check"
-          element="span"
-          :theme="isComplete ? 'positive' : null"
-        >
-          {{ `${savedImagesCount}/${totalImagesCount}` }}
-        </k-button>
-
-        <template v-if="languages.length > 1">
-          <div class="k-languages-dropdown">
             <k-button
               :dropdown="true"
               icon="translate"
@@ -60,7 +93,8 @@
               :text="currentLanguage ? currentLanguage.toUpperCase() : ''"
               :aria-label="languageButtonLabel"
               :title="languageButtonLabel"
-              @click="$refs.languageDropdown.toggle()"
+              :badge="hasAnyUnsavedLanguages ? { theme: 'orange' } : null"
+              @click="toggleDropdown('languageDropdown')"
             />
             <k-dropdown-content
               ref="languageDropdown"
@@ -69,7 +103,33 @@
               theme="dark"
             >
               <k-dropdown-item
-                v-for="lang in languages"
+                v-if="defaultLanguageItem"
+                :key="defaultLanguageItem.code"
+                class="k-languages-dropdown-item"
+                :current="currentLanguage === defaultLanguageItem.code"
+                :aria-label="defaultLanguageItem.name"
+                :title="defaultLanguageItem.name"
+                @click="onLanguageChange(defaultLanguageItem.code)"
+              >
+                {{ defaultLanguageItem.name }}
+                <span class="k-languages-dropdown-item-info">
+                  <k-icon
+                    v-if="languageHasUnsavedChanges(defaultLanguageItem.code)"
+                    type="edit-line"
+                    class="k-languages-dropdown-item-icon"
+                    role="img"
+                    aria-label="Unsaved changes"
+                  />
+                  <span class="k-languages-dropdown-item-code">
+                    {{ defaultLanguageItem.code.toUpperCase() }}
+                  </span>
+                </span>
+              </k-dropdown-item>
+
+              <hr v-if="defaultLanguageItem && secondaryLanguages.length > 0" />
+
+              <k-dropdown-item
+                v-for="lang in secondaryLanguages"
                 :key="lang.code"
                 class="k-languages-dropdown-item"
                 :current="currentLanguage === lang.code"
@@ -77,45 +137,34 @@
                 :title="lang.name"
                 @click="onLanguageChange(lang.code)"
               >
-                <span class="k-button-text">
-                  {{ lang.name }}
-                  <span class="k-languages-dropdown-item-info">
-                    <span class="k-languages-dropdown-item-code">
-                      {{ lang.code.toUpperCase() }}
-                    </span>
+                {{ lang.name }}
+                <span class="k-languages-dropdown-item-info">
+                  <k-icon
+                    v-if="languageHasUnsavedChanges(lang.code)"
+                    type="edit-line"
+                    class="k-languages-dropdown-item-icon"
+                    role="img"
+                    aria-label="Unsaved changes"
+                  />
+                  <span class="k-languages-dropdown-item-code">
+                    {{ lang.code.toUpperCase() }}
                   </span>
                 </span>
               </k-dropdown-item>
             </k-dropdown-content>
           </div>
-        </template>
+        </k-button-group>
 
-        <k-form-controls v-if="hasAnyChanges">
-          <k-button-group layout="collapsed">
-            <k-button
-              @click="discardChanges"
-              icon="undo"
-              variant="filled"
-              theme="notice"
-              size="sm"
-            >
-              {{ $t('discard') }}
-            </k-button>
-            <k-button
-              @click="saveAllChanges"
-              icon="check"
-              theme="notice"
-              variant="filled"
-              size="sm"
-            >
-              {{ $t('medienbaecker.alter.save') }}
-            </k-button>
-          </k-button-group>
-        </k-form-controls>
+        <k-form-controls
+          :has-diff="unsavedImagesCount > 0"
+          :is-processing="isSaving"
+          @discard="discardChanges"
+          @submit="saveAllChanges"
+        />
       </template>
     </k-header>
 
-    <div v-if="!hasLoadedOnce" class="k-loader-container">
+    <div v-if="loading && images.length === 0" class="k-loader-container">
       <k-loader />
     </div>
 
@@ -209,9 +258,24 @@
                   :maxlength="maxLength || null"
                   size="small"
                 />
+                <div
+                  v-if="
+                    shouldShowGenerateButton(item.id) || hasChanges(item.id)
+                  "
+                  class="k-form-controls"
+                >
+                  <k-button
+                    v-if="shouldShowGenerateButton(item.id)"
+                    :icon="item.hasAnyAlt ? 'translateAi' : 'aiGenerateText'"
+                    variant="filled"
+                    theme="orange-icon"
+                    size="sm"
+                    :responsive="'icon'"
+                    :disabled="generating[item.id]"
+                    @click="onGenerateImage(item.id)"
+                  />
 
-                <div v-if="hasChanges(item.id)" class="k-form-controls">
-                  <k-button-group layout="collapsed">
+                  <k-button-group v-if="hasChanges(item.id)" layout="collapsed">
                     <k-button
                       icon="undo"
                       variant="filled"
@@ -257,16 +321,15 @@ export default {
       type: Number,
       default: 1,
     },
-    languageButtonLabel() {
-      const lang = this.languages.find((l) => l.code === this.currentLanguage);
-      if (lang) {
-        return `${lang.name} (${lang.code.toUpperCase()})`;
-      }
-      return this.$t('language');
-    },
     maxLength: {
       type: [Number, Boolean],
       default: false,
+    },
+    generation: {
+      type: Object,
+      default: () => ({
+        enabled: false,
+      }),
     },
   },
 
@@ -277,11 +340,13 @@ export default {
       defaultLanguage: null,
       pagination: { page: 1, pages: 1, total: 0, limit: 100 },
       totals: { unsaved: 0, saved: 0, total: 0 },
+      unsavedByLanguage: {},
 
       // Local edit state
       currentImages: {},
       originalImages: {},
       saving: {},
+      generating: {},
 
       // Draft autosave (debounced) per image
       altSaveTimeouts: {},
@@ -289,7 +354,8 @@ export default {
       // UI state
       loading: false,
       filterMode: null,
-      hasLoadedOnce: false,
+      generationScope: 'current',
+      generatingAll: false,
 
       // “active textarea” tracking for Cmd+S (save current item)
       activeImageId: null,
@@ -317,7 +383,7 @@ export default {
     // Changes
     hasAnyChanges() {
       return Object.keys(this.currentImages).some((imageId) =>
-        this.hasChanges(imageId),
+        this.hasChanges(imageId)
       );
     },
 
@@ -328,6 +394,68 @@ export default {
     languages() {
       return this.$panel.languages || [];
     },
+    defaultLanguageCode() {
+      if (this.defaultLanguage) return this.defaultLanguage;
+
+      const panelDefault = this.languages.find(
+        (lang) => lang.default === true || lang.isDefault === true
+      );
+      if (panelDefault?.code) return panelDefault.code;
+
+      return this.languages?.[0]?.code || null;
+    },
+    defaultLanguageItem() {
+      const code = this.defaultLanguageCode;
+      if (!code) return this.languages?.[0] || null;
+
+      return (
+        this.languages.find((lang) => lang.code === code) ||
+        this.languages?.[0] ||
+        null
+      );
+    },
+    secondaryLanguages() {
+      const defaultCode = this.defaultLanguageItem?.code;
+      if (!defaultCode) return this.languages;
+
+      return this.languages.filter((lang) => lang.code !== defaultCode);
+    },
+    languageButtonLabel() {
+      const lang = this.languages.find((l) => l.code === this.currentLanguage);
+      if (lang) {
+        return `${lang.name} (${lang.code.toUpperCase()})`;
+      }
+      return this.$t('language');
+    },
+    hasAnyUnsavedLanguages() {
+      const currentCode = this.currentLanguage;
+
+      return Object.entries(this.unsavedByLanguage || {}).some(
+        ([code, count]) =>
+          Number(count) > 0 && (!currentCode || code !== currentCode)
+      );
+    },
+    isSaving() {
+      return Object.values(this.saving || {}).some(Boolean);
+    },
+    panelGenerationEnabled() {
+      return this.generation?.enabled === true;
+    },
+    generationScopes() {
+      return [
+        {
+          value: 'current',
+          text: this.$t('medienbaecker.alter.generate.scope.current'),
+        },
+        {
+          value: 'all',
+          text: this.$t('medienbaecker.alter.generate.scope.all'),
+        },
+      ];
+    },
+    generationDropdownLabel() {
+      return this.$t('medienbaecker.alter.generate.label');
+    },
 
     // Filter UI
     currentFilterLabel() {
@@ -335,7 +463,7 @@ export default {
         return this.$t('medienbaecker.alter.filter.all');
       }
       const option = this.filterOptions.find(
-        (opt) => opt.value === this.filterMode,
+        (opt) => opt.value === this.filterMode
       );
       return option ? option.text : this.$t('medienbaecker.alter.filter.all');
     },
@@ -343,15 +471,15 @@ export default {
       return [
         {
           text: this.$t('medienbaecker.alter.filter.saved'),
-          value: 'with_alt',
+          value: 'saved',
         },
         {
           text: this.$t('medienbaecker.alter.filter.unsaved'),
           value: 'unsaved',
         },
         {
-          text: this.$t('medienbaecker.alter.filter.empty'),
-          value: 'without_alt',
+          text: this.$t('medienbaecker.alter.filter.missing'),
+          value: 'missing',
         },
       ];
     },
@@ -383,7 +511,7 @@ export default {
       });
 
       return Object.values(groups).sort((a, b) =>
-        a.sortKey.localeCompare(b.sortKey),
+        a.sortKey.localeCompare(b.sortKey)
       );
     },
 
@@ -403,12 +531,14 @@ export default {
 
   watch: {
     page(newPage) {
+      this.loading = true;
       // Flush pending draft saves before navigation/pagination changes
       this.flushAltDraftSaves().finally(() => this.loadImages(newPage));
     },
 
     currentLanguage(newLanguage, oldLanguage) {
       if (newLanguage !== oldLanguage && oldLanguage !== undefined) {
+        this.loading = true;
         // No confirm dialog: drafts are persisted. Just flush and reload.
         this.flushAltDraftSaves().finally(() => this.loadImages(this.page));
       }
@@ -416,22 +546,15 @@ export default {
   },
 
   created() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const filterParam = urlParams.get('filter');
-    const languageParam = urlParams.get('language');
-
-    if (
-      filterParam &&
-      ['with_alt', 'without_alt', 'unsaved'].includes(filterParam)
-    ) {
-      this.filterMode = filterParam;
+    if (!this.ensurePanelStoresIntact()) {
+      return;
     }
 
-    if (languageParam) {
-      const match = this.languages.find((l) => l.code === languageParam);
-      if (match) {
-        this.$panel.language = match;
-      }
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterParam = urlParams.get('filter');
+
+    if (filterParam && ['saved', 'missing', 'unsaved'].includes(filterParam)) {
+      this.filterMode = filterParam;
     }
 
     this.loadImages(this.page);
@@ -565,6 +688,55 @@ export default {
       return this.currentImages[imageId] || { alt: '' };
     },
 
+    shouldShowGenerateButton(imageId) {
+      if (this.panelGenerationEnabled !== true) return false;
+      const current = this.currentImages?.[imageId]?.alt ?? '';
+
+      const currentEmpty = String(current).trim().length === 0;
+      return currentEmpty;
+    },
+
+    applyGeneratedAlt(imageId, value) {
+      if (!this.currentImages?.[imageId]) return;
+
+      const sanitizedValue = String(value ?? '')
+        .replace(/[\r\n]+/g, ' ')
+        .trim();
+
+      const wasChanged = this.hasChanges(imageId);
+      this.$set(this.currentImages[imageId], 'alt', sanitizedValue);
+      const isChanged = this.hasChanges(imageId);
+      this.updateUnsavedTotals(wasChanged, isChanged);
+    },
+
+    applyGenerationResponse(response) {
+      const results = Array.isArray(response?.images) ? response.images : [];
+      if (results.length === 0) return;
+
+      const currentCode = this.currentLanguage ?? null;
+
+      for (const result of results) {
+        const imageId = result?.imageId;
+        if (!imageId) continue;
+
+        const languages = Array.isArray(result?.languages)
+          ? result.languages
+          : [];
+
+        const currentEntry =
+          languages.find((entry) => entry?.language === currentCode) ||
+          languages[0];
+
+        if (!currentEntry) continue;
+
+        if (!['generated', 'translated'].includes(currentEntry.status)) {
+          continue;
+        }
+
+        this.applyGeneratedAlt(imageId, currentEntry.text ?? '');
+      }
+    },
+
     // ---------------------------------------------------------------------
     // Draft autosave (debounced) helpers
     // ---------------------------------------------------------------------
@@ -584,7 +756,7 @@ export default {
 
         if (resp && resp.error) {
           this.$panel.notification.error(
-            resp.error || this.$t('medienbaecker.alter.error'),
+            resp.error || this.$t('medienbaecker.alter.error')
           );
         }
       } catch (e) {
@@ -609,7 +781,7 @@ export default {
 
     async flushAltDraftSaves() {
       const ids = Object.keys(this.altSaveTimeouts).filter(
-        (id) => this.altSaveTimeouts[id],
+        (id) => this.altSaveTimeouts[id]
       );
 
       if (ids.length === 0) return;
@@ -635,14 +807,167 @@ export default {
     },
 
     // ---------------------------------------------------------------------
+    // AI generation
+    // ---------------------------------------------------------------------
+
+    setGenerationScope(scope) {
+      const allowed = ['current', 'all'];
+      this.generationScope = allowed.includes(scope) ? scope : 'current';
+    },
+
+    async onGenerateAll(scope = this.generationScope) {
+      this.setGenerationScope(scope);
+      await this.generateForAll(scope);
+    },
+
+    async generateForAll(scope = this.generationScope) {
+      if (!this.panelGenerationEnabled || this.images.length === 0) return;
+
+      await this.flushAltDraftSaves();
+
+      const imageIds = [...new Set(this.images.map((image) => image.id))];
+
+      this.generatingAll = true;
+
+      try {
+        const response = await this.$api.post('alter/generate', {
+          imageIds,
+          languageMode: scope,
+        });
+
+        if (response?.error) {
+          throw new Error(response.error);
+        }
+
+        const generated = Number(response?.generated ?? 0);
+        const message =
+          generated > 0
+            ? this.$t('medienbaecker.alter.generate.success.all', {
+                count: generated,
+              })
+            : this.$t('medienbaecker.alter.generate.none');
+
+        this.applyGenerationResponse(response);
+        this.$panel.notification.success(message);
+      } catch (error) {
+        this.$panel.notification.error(
+          error?.message || this.$t('medienbaecker.alter.generate.failed')
+        );
+        console.error(error);
+      } finally {
+        this.generatingAll = false;
+      }
+    },
+
+    async onGenerateImage(imageId) {
+      await this.generateForImage(imageId, 'current');
+    },
+
+    async generateForImage(imageId, scope = this.generationScope) {
+      if (!this.panelGenerationEnabled) return;
+
+      await this.flushAltDraftSaveFor(imageId);
+
+      this.$set(this.generating, imageId, true);
+
+      try {
+        const response = await this.$api.post('alter/generate', {
+          imageIds: [imageId],
+          languageMode: scope,
+        });
+
+        if (response?.error) {
+          throw new Error(response.error);
+        }
+
+        const generated = Number(response?.generated ?? 0);
+        const didTranslate = Array.isArray(response?.images)
+          ? response.images
+              .find((img) => img.imageId === imageId)
+              ?.languages?.some((entry) => entry.status === 'translated')
+          : false;
+        const message =
+          generated > 0
+            ? didTranslate
+              ? this.$t('medienbaecker.alter.generate.success.translated.one')
+              : this.$t('medienbaecker.alter.generate.success.one')
+            : this.$t('medienbaecker.alter.generate.none');
+
+        this.applyGenerationResponse(response);
+        this.$panel.notification.success(message);
+      } catch (error) {
+        this.$panel.notification.error(
+          error?.message || this.$t('medienbaecker.alter.generate.failed')
+        );
+        console.error(error);
+      } finally {
+        this.$set(this.generating, imageId, false);
+      }
+    },
+
+    toggleDropdown(refName) {
+      const ref = this.getDropdownRef(refName);
+      if (ref && typeof ref.toggle === 'function') {
+        ref.toggle();
+      }
+    },
+
+    getDropdownRef(refName) {
+      const ref = this.$refs?.[refName];
+      if (Array.isArray(ref)) {
+        return ref[0];
+      }
+      return ref || null;
+    },
+
+    ensurePanelStoresIntact() {
+      const resetKey = 'medienbaecker.alter.panelStoreResetAttempted';
+      const stores = [
+        'dropdown',
+        'language',
+        'menu',
+        'notification',
+        'system',
+        'translation',
+        'user',
+      ];
+
+      for (const storeName of stores) {
+        const store = this.$panel?.[storeName];
+        if (store && typeof store.set !== 'function') {
+          try {
+            if (!sessionStorage.getItem(resetKey)) {
+              sessionStorage.setItem(resetKey, '1');
+              window.location.reload();
+            }
+          } catch (e) {
+            window.location.reload();
+          }
+
+          return false;
+        }
+      }
+
+      try {
+        sessionStorage.removeItem(resetKey);
+      } catch (e) {}
+
+      return true;
+    },
+
+    // ---------------------------------------------------------------------
     // View actions (filter / language / pagination)
     // ---------------------------------------------------------------------
 
     async onFilterChange(value) {
       await this.flushAltDraftSaves();
 
+      if (!this.ensurePanelStoresIntact()) return;
+
       this.filterMode = value;
-      this.loadImages(1);
+      if (this.page === 1) {
+        await this.loadImages(1);
+      }
 
       this.$go(this.buildRoute(1));
     },
@@ -650,7 +975,19 @@ export default {
     async onLanguageChange(code) {
       await this.flushAltDraftSaves();
 
-      this.$go(this.buildRoute(this.page, code));
+      if (!this.ensurePanelStoresIntact()) return;
+
+      if ((code ?? null) === (this.currentLanguage ?? null)) {
+        return;
+      }
+
+      this.loading = true;
+      this.$reload({
+        query: {
+          ...(this.filterMode ? { filter: this.filterMode } : {}),
+          language: code,
+        },
+      });
     },
 
     async onPageChange(paginationData) {
@@ -684,12 +1021,14 @@ export default {
     // Data loading + formatting
     // ---------------------------------------------------------------------
     buildRoute(page, languageOverride = null) {
-      const params = [];
-      if (this.filterMode) params.push(`filter=${this.filterMode}`);
+      const query = {
+        ...(this.filterMode ? { filter: this.filterMode } : {}),
+      };
+
       const lang = languageOverride || this.currentLanguage;
-      if (lang) params.push(`language=${lang}`);
-      const query = params.length ? `?${params.join('&')}` : '';
-      return `/alter/${page}${query}`;
+      if (lang) query.language = lang;
+
+      return this.$url(`alter/${page}`, query);
     },
 
     async loadImages(page = 1) {
@@ -705,9 +1044,9 @@ export default {
         this.defaultLanguage = response.defaultLanguage || null;
         this.pagination = response.pagination;
         this.totals = response.totals;
+        this.unsavedByLanguage = response.unsavedByLanguage || {};
 
         this.initializeImageData();
-        this.hasLoadedOnce = true;
       } catch (error) {
         console.error('Failed to load images:', error);
         this.$panel.notification.error('Failed to load images');
@@ -716,10 +1055,17 @@ export default {
       }
     },
 
+    languageHasUnsavedChanges(code) {
+      if (!code) return false;
+      return Number(this.unsavedByLanguage?.[code] ?? 0) > 0;
+    },
+
     initializeImageData() {
       this.currentImages = {};
       this.originalImages = {};
       this.saving = {};
+      this.generating = {};
+      this.generatingAll = false;
 
       this.images.forEach((image) => {
         const currentData = { alt: image.alt || '' };
@@ -757,7 +1103,15 @@ export default {
 
     updateUnsavedTotals(wasChanged, isChanged) {
       if (wasChanged === isChanged) return;
-      this.totals.unsaved += isChanged ? 1 : -1;
+
+      const delta = isChanged ? 1 : -1;
+      this.totals.unsaved += delta;
+
+      const code = this.currentLanguage;
+      if (code) {
+        const current = Number(this.unsavedByLanguage?.[code] ?? 0);
+        this.$set(this.unsavedByLanguage, code, Math.max(0, current + delta));
+      }
     },
 
     updateSavedTotals(previousAlt, nextAlt) {
@@ -830,13 +1184,13 @@ export default {
       await this.flushAltDraftSaves();
 
       const changedImages = Object.keys(this.currentImages).filter((imageId) =>
-        this.hasChanges(imageId),
+        this.hasChanges(imageId)
       );
 
       if (changedImages.length === 0) return;
 
       await Promise.all(
-        changedImages.map((imageId) => this.saveImage(imageId)),
+        changedImages.map((imageId) => this.saveImage(imageId))
       );
     },
 
@@ -885,13 +1239,13 @@ export default {
       await this.flushAltDraftSaves();
 
       const changedImages = Object.keys(this.currentImages).filter((imageId) =>
-        this.hasChanges(imageId),
+        this.hasChanges(imageId)
       );
 
       if (changedImages.length === 0) return;
 
       await Promise.all(
-        changedImages.map((imageId) => this.discardImage(imageId)),
+        changedImages.map((imageId) => this.discardImage(imageId))
       );
     },
   },
@@ -921,9 +1275,14 @@ export default {
   padding: var(--spacing-2) var(--spacing-3) var(--spacing-3);
 }
 
-.k-form-controls {
-  display: grid;
-  justify-content: end;
+.k-item .k-form-controls {
+  display: flex;
+  align-items: space-between;
+  gap: var(--spacing-2);
+}
+
+.k-item .k-form-controls .k-button-group {
+  margin-left: auto;
 }
 
 .k-field-name-alt {

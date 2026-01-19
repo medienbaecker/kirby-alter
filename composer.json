@@ -10,6 +10,11 @@
         }
     ],
     "require": {
-        "getkirby/composer-installer": "^1.1"
+        "getkirby/composer-installer": "^1.2"
+    },
+    "config": {
+        "allow-plugins": {
+            "getkirby/composer-installer": true
+        }
     }
 }

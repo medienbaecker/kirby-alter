@@ -1,0 +1,35 @@
+<?php
+
+return array(
+	'medienbaecker.alter.title'                    => 'Εναλλακτικά κείμενα',
+	'medienbaecker.alter.noImages'                 => 'Δεν βρέθηκαν εικόνες',
+	'medienbaecker.alter.noAltText'                => 'Χωρίς εναλλακτικό κείμενο',
+	'medienbaecker.alter.save'                     => 'Αποθήκευση',
+	'medienbaecker.alter.error'                    => 'Αποτυχία αποθήκευσης αλλαγών',
+	'medienbaecker.alter.unsaved'                  => 'Έχετε μη αποθηκευμένες αλλαγές. Συνέχεια ούτως ή άλλως;',
+	'medienbaecker.alter.image'                    => 'εικόνα',
+	'medienbaecker.alter.images'                   => 'εικόνες',
+	'medienbaecker.alter.notAuthenticated'         => 'Δεν είστε συνδεδεμένοι',
+	'medienbaecker.alter.invalidField'             => 'Μη έγκυρο πεδίο',
+	'medienbaecker.alter.imageNotFound'            => 'Η εικόνα δεν βρέθηκε',
+	'medienbaecker.alter.success'                  => 'Οι αλλαγές αποθηκεύτηκαν με επιτυχία',
+	'medienbaecker.alter.generate.all'             => 'Δημιουργία όλων',
+	'medienbaecker.alter.generate.one'             => 'Δημιουργία εναλλακτικού κειμένου',
+	'medienbaecker.alter.generate.label'           => 'Δημιουργία',
+	'medienbaecker.alter.generate.success.all'     => 'Δημιουργήθηκαν {{ count }} εναλλακτικά κείμενα',
+	'medienbaecker.alter.generate.success.one'     => 'Το εναλλακτικό κείμενο δημιουργήθηκε',
+	'medienbaecker.alter.generate.success.translated.one' => 'Το εναλλακτικό κείμενο μεταφράστηκε',
+	'medienbaecker.alter.generate.none'            => 'Δεν δημιουργήθηκε εναλλακτικό κείμενο',
+	'medienbaecker.alter.generate.failed'          => 'Αποτυχία δημιουργίας εναλλακτικού κειμένου',
+	'medienbaecker.alter.generate.disabled'        => 'Η δημιουργία στο Panel είναι απενεργοποιημένη',
+	'medienbaecker.alter.api.key.missing'          => 'Λείπει το κλειδί API του Claude',
+	'medienbaecker.alter.filter.label'             => 'Φίλτρο',
+	'medienbaecker.alter.filter.all'               => 'Όλες οι εικόνες',
+	'medienbaecker.alter.filter.saved'             => 'Αποθηκευμένα',
+	'medienbaecker.alter.filter.unsaved'           => 'Μη αποθηκευμένα',
+	'medienbaecker.alter.filter.missing'           => 'Λείπουν',
+	'medienbaecker.alter.parentDraft'              => 'Γονικό: Πρόχειρο',
+	'medienbaecker.alter.generate.scope.current'   => 'Τρέχουσα γλώσσα',
+	'medienbaecker.alter.generate.scope.all'       => 'Όλες οι γλώσσες'
+);
+
