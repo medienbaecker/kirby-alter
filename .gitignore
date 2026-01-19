@@ -1,16 +1,14 @@
-# OS files
+# os
 .DS_Store
 
-# Editors
+# editors
 .idea/
 .vscode/
+*.sublime-project
+*.sublime-workspace
 
-# PHP tooling
-.php-cs-fixer.cache
-.phpunit.cache/
-.phpunit.result.cache
-
-# Composer
+# composer
+composer.lock
 vendor/
 
 # Node

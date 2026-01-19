@@ -54,25 +54,22 @@
           <div v-if="panelGenerationEnabled" class="k-view-button">
             <k-button
               :dropdown="true"
-              icon="ai"
+              :icon="generatingAll ? 'loader' : 'ai'"
               variant="filled"
-              theme="orange-icon"
+              :theme="generationButtonTheme"
               size="sm"
               :responsive="'text'"
               :text="generationDropdownLabel"
               :title="generationDropdownLabel"
-              :disabled="images.length === 0 || generatingAll"
+              :disabled="generationButtonDisabled"
               @click="toggleDropdown('scopeDropdown')"
             />
-            <k-dropdown-content
-              v-if="images.length > 0"
-              ref="scopeDropdown"
-              align-x="end"
-            >
+            <k-dropdown-content ref="scopeDropdown" align-x="end">
               <k-dropdown-item
                 v-for="scope in generationScopes"
                 icon="aiGenerateText"
                 :key="scope.value"
+                :disabled="scope.disabled"
                 @click="onGenerateAll(scope.value)"
               >
                 {{ scope.text }}
@@ -164,12 +161,12 @@
       </template>
     </k-header>
 
-    <div v-if="loading && images.length === 0" class="k-loader-container">
-      <k-loader />
-    </div>
-
-    <div v-else-if="images.length === 0" class="k-empty">
-      <k-text>{{ emptyStateMessage }}</k-text>
+    <div v-if="images.length === 0" class="k-empty">
+      <k-loader v-if="loading && hasLoadedOnce !== true" />
+      <template v-else>
+        <k-text>{{ emptyStateMessage }}</k-text>
+        <k-loader v-if="loading" />
+      </template>
     </div>
 
     <template v-else>
@@ -266,7 +263,13 @@
                 >
                   <k-button
                     v-if="shouldShowGenerateButton(item.id)"
-                    :icon="item.hasAnyAlt ? 'translateAi' : 'aiGenerateText'"
+                    :icon="
+                      generating[item.id]
+                        ? 'loader'
+                        : item.hasAnyAlt
+                        ? 'translateAi'
+                        : 'aiGenerateText'
+                    "
                     variant="filled"
                     theme="orange-icon"
                     size="sm"
@@ -340,6 +343,7 @@ export default {
       defaultLanguage: null,
       pagination: { page: 1, pages: 1, total: 0, limit: 100 },
       totals: { unsaved: 0, saved: 0, total: 0 },
+      generationStats: { missingCurrent: 0, missingAny: 0 },
       unsavedByLanguage: {},
 
       // Local edit state
@@ -352,10 +356,13 @@ export default {
       altSaveTimeouts: {},
 
       // UI state
+      hasLoadedOnce: false,
       loading: false,
       filterMode: null,
       generationScope: 'current',
       generatingAll: false,
+      generationButtonFeedback: null,
+      generationButtonFeedbackResetTimerId: null,
 
       // “active textarea” tracking for Cmd+S (save current item)
       activeImageId: null,
@@ -442,16 +449,45 @@ export default {
       return this.generation?.enabled === true;
     },
     generationScopes() {
-      return [
+      const scopes = [
         {
           value: 'current',
           text: this.$t('medienbaecker.alter.generate.scope.current'),
         },
-        {
+      ];
+
+      if (this.languages.length > 1) {
+        scopes.push({
           value: 'all',
           text: this.$t('medienbaecker.alter.generate.scope.all'),
-        },
-      ];
+        });
+      }
+
+      const resolved = scopes.map((scope) => ({
+        ...scope,
+        disabled: this.canGenerateForScope(scope.value) !== true,
+      }));
+
+      if (resolved.length > 1 && resolved[0].disabled === true) {
+        const firstEnabledIndex = resolved.findIndex(
+          (scope) => scope.disabled !== true
+        );
+        if (firstEnabledIndex > 0) {
+          const [firstEnabled] = resolved.splice(firstEnabledIndex, 1);
+          resolved.unshift(firstEnabled);
+        }
+      }
+
+      return resolved;
+    },
+    generationButtonDisabled() {
+      if (this.generatingAll) return true;
+      return this.generationScopes.every((scope) => scope.disabled === true);
+    },
+    generationButtonTheme() {
+      if (this.generationButtonFeedback === 'success') return 'positive';
+      if (this.generationButtonFeedback === 'error') return 'negative';
+      return 'orange-icon';
     },
     generationDropdownLabel() {
       return this.$t('medienbaecker.alter.generate.label');
@@ -567,6 +603,7 @@ export default {
 
   beforeDestroy() {
     window.panel.events.off('keydown.cmd.s', this.onCmdS);
+    this.clearGenerationButtonFeedback();
   },
 
   methods: {
@@ -696,6 +733,37 @@ export default {
       return currentEmpty;
     },
 
+    canGenerateForScope(scope) {
+      if (this.panelGenerationEnabled !== true) return false;
+
+      if (!Array.isArray(this.images) || this.images.length === 0) {
+        if (this.filterMode && this.filterMode !== 'missing') return false;
+
+        const missingCurrent = Number(
+          this.generationStats?.missingCurrent ?? 0
+        );
+        const missingAny = Number(this.generationStats?.missingAny ?? 0);
+
+        if (scope === 'current') return missingCurrent > 0;
+        if (scope === 'all') return missingAny > 0;
+        return false;
+      }
+
+      if (scope === 'current') {
+        return this.images.some((image) => {
+          const localValue = this.currentImages?.[image.id]?.alt;
+          const value = localValue !== undefined ? localValue : image.alt;
+          return String(value ?? '').trim().length === 0;
+        });
+      }
+
+      if (scope === 'all') {
+        return this.images.some((image) => image.hasMissingAlt === true);
+      }
+
+      return false;
+    },
+
     applyGeneratedAlt(imageId, value) {
       if (!this.currentImages?.[imageId]) return;
 
@@ -815,13 +883,35 @@ export default {
       this.generationScope = allowed.includes(scope) ? scope : 'current';
     },
 
+    clearGenerationButtonFeedback() {
+      if (this.generationButtonFeedbackResetTimerId !== null) {
+        clearTimeout(this.generationButtonFeedbackResetTimerId);
+        this.generationButtonFeedbackResetTimerId = null;
+      }
+      this.generationButtonFeedback = null;
+    },
+
+    scheduleGenerationButtonFeedbackReset(delay = 1200) {
+      if (this.generationButtonFeedbackResetTimerId !== null) {
+        clearTimeout(this.generationButtonFeedbackResetTimerId);
+      }
+
+      this.generationButtonFeedbackResetTimerId = window.setTimeout(() => {
+        this.generationButtonFeedback = null;
+        this.generationButtonFeedbackResetTimerId = null;
+      }, delay);
+    },
+
     async onGenerateAll(scope = this.generationScope) {
       this.setGenerationScope(scope);
+      if (this.canGenerateForScope(scope) !== true) return;
       await this.generateForAll(scope);
     },
 
     async generateForAll(scope = this.generationScope) {
-      if (!this.panelGenerationEnabled || this.images.length === 0) return;
+      if (!this.panelGenerationEnabled) return;
+
+      this.clearGenerationButtonFeedback();
 
       await this.flushAltDraftSaves();
 
@@ -833,6 +923,9 @@ export default {
         const response = await this.$api.post('alter/generate', {
           imageIds,
           languageMode: scope,
+          ...(imageIds.length === 0 && this.filterMode === 'missing'
+            ? { autoSelect: true }
+            : {}),
         });
 
         if (response?.error) {
@@ -849,7 +942,13 @@ export default {
 
         this.applyGenerationResponse(response);
         this.$panel.notification.success(message);
+        if (generated > 0) {
+          this.generationButtonFeedback = 'success';
+          this.scheduleGenerationButtonFeedbackReset();
+        }
       } catch (error) {
+        this.generationButtonFeedback = 'error';
+        this.scheduleGenerationButtonFeedbackReset();
         this.$panel.notification.error(
           error?.message || this.$t('medienbaecker.alter.generate.failed')
         );
@@ -906,10 +1005,27 @@ export default {
     },
 
     toggleDropdown(refName) {
+      if (refName === 'scopeDropdown') {
+        this.ensureGenerationScope();
+      }
+
       const ref = this.getDropdownRef(refName);
       if (ref && typeof ref.toggle === 'function') {
         ref.toggle();
       }
+    },
+
+    ensureGenerationScope() {
+      const enabledScopes = this.generationScopes.filter(
+        (scope) => scope.disabled !== true
+      );
+
+      if (enabledScopes.length === 0) return;
+
+      const enabledValues = enabledScopes.map((scope) => scope.value);
+      if (enabledValues.includes(this.generationScope)) return;
+
+      this.generationScope = enabledScopes[0].value;
     },
 
     getDropdownRef(refName) {
@@ -1045,12 +1161,17 @@ export default {
         this.pagination = response.pagination;
         this.totals = response.totals;
         this.unsavedByLanguage = response.unsavedByLanguage || {};
+        this.generationStats = response.generationStats || {
+          missingCurrent: 0,
+          missingAny: 0,
+        };
 
         this.initializeImageData();
       } catch (error) {
         console.error('Failed to load images:', error);
         this.$panel.notification.error('Failed to load images');
       } finally {
+        this.hasLoadedOnce = true;
         this.loading = false;
       }
     },
@@ -1218,6 +1339,8 @@ export default {
           page: this.page,
           filter: this.filterMode || 'all',
         });
+
+        this.generationStats = response.generationStats || this.generationStats;
 
         const updatedImage = response.images.find((img) => img.id === imageId);
 

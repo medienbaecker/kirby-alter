@@ -69,15 +69,16 @@ return [
 							}
 						}
 
-							$latestContent = $latestContentArray($image, $languageCode);
-							$latestAlt = (string)($latestContent['alt'] ?? '');
-							$changes = $image->version('changes');
-							$hasAnyAlt = false;
+								$latestContent = $latestContentArray($image, $languageCode);
+								$latestAlt = (string)($latestContent['alt'] ?? '');
+								$changes = $image->version('changes');
+								$hasAnyAlt = false;
+								$hasMissingAlt = false;
 
-							// Track unsaved changes per language (for the language dropdown)
-							if (!empty($siteLanguages)) {
-								foreach ($siteLanguages as $lang) {
-									$langCode = $lang->code();
+								// Track unsaved changes per language (for the language dropdown)
+								if (!empty($siteLanguages)) {
+									foreach ($siteLanguages as $lang) {
+										$langCode = $lang->code();
 									$langLatestContent = $latestContentArray($image, $langCode);
 									$langLatestAlt = (string)($langLatestContent['alt'] ?? '');
 									$langCurrentAlt = $langLatestAlt;
@@ -93,14 +94,21 @@ return [
 										}
 									}
 
-									if (
-										$hasAnyAlt !== true &&
-										trim((string)$langCurrentAlt) !== ''
-									) {
-										$hasAnyAlt = true;
+										if (
+											$hasAnyAlt !== true &&
+											trim((string)$langCurrentAlt) !== ''
+										) {
+											$hasAnyAlt = true;
+										}
+
+										if (
+											$hasMissingAlt !== true &&
+											trim((string)$langCurrentAlt) === ''
+										) {
+											$hasMissingAlt = true;
+										}
 									}
 								}
-							}
 
 						$changesContent = $versionExists($changes, $languageCode)
 							? $versionContentArray($changes, $languageCode)
@@ -111,9 +119,13 @@ return [
 								: $latestAlt;
 							$hasChanges = $currentAlt !== $latestAlt;
 
-							if (empty($siteLanguages) && trim((string)$currentAlt) !== '') {
-								$hasAnyAlt = true;
-							}
+								if (empty($siteLanguages) && trim((string)$currentAlt) !== '') {
+									$hasAnyAlt = true;
+								}
+
+								if (empty($siteLanguages) && trim((string)$currentAlt) === '') {
+									$hasMissingAlt = true;
+								}
 
 							$changesPath = $sitePage->panel()->path() . '/files/' . $image->filename();
 
@@ -160,19 +172,20 @@ return [
 							'link' => $sitePage->panel()->url(),
 						];
 
-						$allImages[] = [
-							'id' => $image->id(),
-							'url' => $image->url(),
-							'thumbUrl' => $image->resize(500, 500)->url(),
+								$allImages[] = [
+									'id' => $image->id(),
+									'url' => $image->url(),
+									'thumbUrl' => $image->resize(500, 500)->url(),
 							'filename' => $image->filename(),
 							'alt' => $currentAlt,
-							'altOriginal' => $latestAlt,
-								'hasChanges' => $hasChanges,
-								'hasAnyAlt' => $hasAnyAlt,
-								'changesPath' => $changesPath,
-								'panelUrl' => $image->panel()->url(),
-								'pageUrl' => $image->page()->url(),
-								'pageTitle' => $sitePage->title()->value(),
+									'altOriginal' => $latestAlt,
+									'hasChanges' => $hasChanges,
+									'hasAnyAlt' => $hasAnyAlt,
+									'hasMissingAlt' => $hasMissingAlt,
+									'changesPath' => $changesPath,
+									'panelUrl' => $image->panel()->url(),
+									'pageUrl' => $image->page()->url(),
+									'pageTitle' => $sitePage->title()->value(),
 							'pageId' => $sitePage->id(),
 							'pagePanelUrl' => $sitePage->panel()->url(),
 							'pageSort' => $sitePage->num(),
@@ -187,14 +200,31 @@ return [
 				}
 			}
 
-			// Store original total before filtering
-			$originalTotalImages = count($allImages);
+				// Store original total before filtering
+				$originalTotalImages = count($allImages);
 
-			// Apply filter
-			$filteredImages = $allImages;
-			if ($filter === 'saved') {
-				$filteredImages = array_filter($allImages, function ($imageData) {
-					return !empty($imageData['alt']) && trim($imageData['alt']) !== '';
+				// Generation stats (always based on all images)
+				$generationStats = [
+					'missingCurrent' => 0,
+					'missingAny' => 0,
+				];
+
+				foreach ($allImages as $imageData) {
+					$currentAlt = trim((string)($imageData['alt'] ?? ''));
+					if ($currentAlt === '') {
+						$generationStats['missingCurrent']++;
+					}
+
+					if (($imageData['hasMissingAlt'] ?? false) === true) {
+						$generationStats['missingAny']++;
+					}
+				}
+
+				// Apply filter
+				$filteredImages = $allImages;
+				if ($filter === 'saved') {
+					$filteredImages = array_filter($allImages, function ($imageData) {
+						return !empty($imageData['alt']) && trim($imageData['alt']) !== '';
 				});
 			} elseif ($filter === 'missing') {
 				$filteredImages = array_filter($allImages, function ($imageData) {
@@ -238,16 +268,17 @@ return [
 					'start' => $offset + 1,
 					'end' => min($offset + $limit, $filteredTotalImages),
 				],
-				'totals' => [
-					'unsaved' => $totalUnsaved,
-					'saved' => $totalSaved,
-					'total' => $originalTotalImages,
-				],
-			];
-		},
-	],
-	[
-		'pattern' => 'alter/generate',
+					'totals' => [
+						'unsaved' => $totalUnsaved,
+						'saved' => $totalSaved,
+						'total' => $originalTotalImages,
+					],
+					'generationStats' => $generationStats,
+				];
+			},
+		],
+		[
+			'pattern' => 'alter/generate',
 		'method' => 'POST',
 		'action' => function () {
 			$user = kirby()->user();
@@ -264,55 +295,155 @@ return [
 				return ['error' => t('medienbaecker.alter.api.key.missing')];
 			}
 
-			$request = kirby()->request();
-			$body = $request->body();
+				$request = kirby()->request();
+				$body = $request->body();
 
-			$languageMode = $body->get('languageMode', 'current');
-			if (!in_array($languageMode, ['all', 'current'], true)) {
-				$languageMode = 'current';
-			}
-			$imageIds = $body->get('imageIds', []);
+				$languageMode = $body->get('languageMode', 'current');
+				if (!in_array($languageMode, ['all', 'current'], true)) {
+					$languageMode = 'current';
+				}
+				$autoSelect = $body->get('autoSelect', false);
+				$autoSelect = in_array($autoSelect, [true, 1, '1', 'true'], true);
+				$imageIds = $body->get('imageIds', []);
 
-			if (empty($imageIds)) {
-				$imageIds = $body->get('imageId') ? [$body->get('imageId')] : [];
-			}
-
-			$imageIds = array_unique(array_filter((array)$imageIds));
-
-			if (empty($imageIds)) {
-				return ['error' => t('medienbaecker.alter.imageNotFound')];
-			}
-
-			$images = [];
-			foreach ($imageIds as $imageId) {
-				$image = kirby()->file($imageId);
-				if (!$image) {
-					throw new NotFoundException(t('medienbaecker.alter.imageNotFound'));
+				if (empty($imageIds)) {
+					$imageIds = $body->get('imageId') ? [$body->get('imageId')] : [];
 				}
 
-				if ($image->permissions()->update() !== true) {
-					throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
+				$imageIds = array_unique(array_filter((array)$imageIds));
+
+				if (kirby()->multilang()) {
+					$currentLanguage = kirby()->language();
+					$languages = $languageMode === 'current'
+						? [$currentLanguage ?? kirby()->defaultLanguage()]
+						: kirby()->languages()->values();
+					$defaultLanguage = kirby()->defaultLanguage();
+				} else {
+					$languages = [null];
+					$defaultLanguage = null;
 				}
 
-				$images[] = $image;
-			}
+				$images = [];
 
-			if (kirby()->multilang()) {
-				$currentLanguage = kirby()->language();
-				$languages = $languageMode === 'current'
-					? [$currentLanguage ?? kirby()->defaultLanguage()]
-					: kirby()->languages()->values();
-				$defaultLanguage = kirby()->defaultLanguage();
-			} else {
-				$languages = [null];
-				$defaultLanguage = null;
-			}
+				if (empty($imageIds) === true) {
+					if ($autoSelect !== true) {
+						return ['error' => t('medienbaecker.alter.imageNotFound')];
+					}
 
-			$generator = new AlterPanelGenerator([
-				'apiKey' => $apiKey,
-				'model' => option('medienbaecker.alter.api.model', option('medienbaecker.alter.model', 'claude-haiku-4-5')),
-				'prompt' => option('medienbaecker.alter.prompt'),
-			]);
+					$autoLimit = 100;
+
+					$allowedTemplates = kirby()->option('medienbaecker.alter.templates');
+					if (is_string($allowedTemplates)) {
+						$allowedTemplates = [$allowedTemplates];
+					}
+
+					$versionExists = static function ($version, ?string $code): bool {
+						return $code === null
+							? $version->exists()
+							: $version->exists($code);
+					};
+
+					$versionContentArray = static function ($version, ?string $code): array {
+						try {
+							$fields = $code === null ? $version->read() : $version->read($code);
+							return $fields ?? [];
+						} catch (\Throwable $e) {
+							return [];
+						}
+					};
+
+					$currentAltForLanguage = static function ($image, ?string $code) use ($versionExists, $versionContentArray): string {
+						$latest = $image->version('latest');
+						$latestContent = $versionContentArray($latest, $code);
+						$latestAlt = (string)($latestContent['alt'] ?? '');
+
+						$changes = $image->version('changes');
+						if ($versionExists($changes, $code) !== true) {
+							return $latestAlt;
+						}
+
+						$changesContent = $versionContentArray($changes, $code);
+						if (array_key_exists('alt', $changesContent) !== true) {
+							return $latestAlt;
+						}
+
+						return (string)($changesContent['alt'] ?? '');
+					};
+
+					$pages = site()->index(true);
+
+					foreach ($pages as $sitePage) {
+						if ($sitePage->hasImages() !== true) {
+							continue;
+						}
+
+						foreach ($sitePage->images() as $image) {
+							if ($allowedTemplates !== null) {
+								$imageTemplate = $image->template();
+								if (!in_array($imageTemplate, $allowedTemplates, true)) {
+									continue;
+								}
+							}
+
+							if ($image->permissions()->update() !== true) {
+								continue;
+							}
+
+							if ($languageMode === 'current') {
+								$target = $languages[0] ?? null;
+								$code = $target?->code();
+								$alt = trim((string)$currentAltForLanguage($image, $code));
+								if ($alt === '') {
+									$images[] = $image;
+									if (count($images) >= $autoLimit) {
+										break 2;
+									}
+								}
+								continue;
+							}
+
+							// all languages
+							foreach ($languages as $target) {
+								$code = $target?->code();
+								$alt = trim((string)$currentAltForLanguage($image, $code));
+								if ($alt === '') {
+									$images[] = $image;
+									if (count($images) >= $autoLimit) {
+										break 3;
+									}
+									break;
+								}
+							}
+						}
+					}
+
+					if (empty($images)) {
+						return [
+							'success' => true,
+							'generated' => 0,
+							'images' => [],
+						];
+					}
+				} else {
+					foreach ($imageIds as $imageId) {
+						$image = kirby()->file($imageId);
+						if (!$image) {
+							throw new NotFoundException(t('medienbaecker.alter.imageNotFound'));
+						}
+
+						if ($image->permissions()->update() !== true) {
+							throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
+						}
+
+						$images[] = $image;
+					}
+				}
+
+				$generator = new AlterPanelGenerator([
+					'apiKey' => $apiKey,
+					'model' => option('medienbaecker.alter.api.model', option('medienbaecker.alter.model', 'claude-haiku-4-5')),
+					'prompt' => option('medienbaecker.alter.prompt'),
+				]);
 
 			try {
 				$result = $generator->generateForImages($images, $languages, $defaultLanguage);
