@@ -29,10 +29,10 @@
           </div>
 
           <div v-if="panelGenerationEnabled" class="k-view-button">
-            <k-button :dropdown="true" :icon="generatingAll ? 'loader' : 'ai'" variant="filled"
+            <k-button :dropdown="languages.length > 1" :icon="generatingAll ? 'loader' : 'ai'" variant="filled"
               :theme="generationButtonTheme" size="sm" :responsive="'text'" :text="generationDropdownLabel"
               :title="generationDropdownLabel" :disabled="generationButtonDisabled"
-              @click="toggleDropdown('scopeDropdown')" />
+              @click="languages.length > 1 ? toggleDropdown('scopeDropdown') : onGenerateAll('current')" />
             <k-dropdown-content ref="scopeDropdown" align-x="end">
               <k-dropdown-item v-for="scope in generationScopes" icon="aiGenerateText" :key="scope.value"
                 :disabled="scope.disabled" @click="onGenerateAll(scope.value)">
