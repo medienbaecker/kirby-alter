@@ -95,7 +95,7 @@
     <template v-else>
       <k-section v-for="pageGroup in groupedImages" :key="pageGroup.pageId">
         <header class="k-section-header">
-          <k-breadcrumb :crumbs="formatBreadcrumbs(pageGroup.breadcrumbs)" />
+          <k-breadcrumb :crumbs="formatBreadcrumbs(pageGroup.breadcrumbs)" class="alter-breadcrumb" />
 
           <k-button-group class="k-section-buttons">
             <k-button variant="filled" size="sm" element="span" :badge="badgeForPage(pageGroup.pageId)">
@@ -1232,8 +1232,8 @@ export default {
 </script>
 
 <style scoped>
-:deep(.k-breadcrumb ol > li:first-child) .k-breadcrumb-link {
-  padding-inline-start: 0;
+.alter-breadcrumb {
+  margin-inline-start: calc(var(--button-padding) * -1);
 }
 
 .k-item {
