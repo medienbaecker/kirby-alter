@@ -129,9 +129,10 @@
 
         <k-items :items="formatItems(pageGroup.images)" layout="cards" size="huge" :link="false">
           <template #default="{ item }">
-            <div class="k-item k-cards-item" :data-image-id="item.id">
-              <k-link :to="item.panelUrl">
-                <k-image-frame :src="item.thumbUrl" :alt="getImageData(item.id).alt" back="pattern" ratio="3/2" />
+            <div class="k-item k-cards-item alter-card" :data-image-id="item.id">
+              <k-link :to="item.panelUrl" class="alter-image-link">
+                <k-image-frame :src="item.thumbUrl" :alt="getImageData(item.id).alt" class="alter-image-frame"
+                  back="pattern" ratio="3/2" />
               </k-link>
 
               <div class="k-item-content">
@@ -1236,14 +1237,22 @@ export default {
   margin-inline-start: calc(var(--button-padding) * -1);
 }
 
-.k-item {
+.alter-card {
   display: flex;
   flex-flow: column nowrap;
+
+  /* Remove default .k-item outline as only image is a link */
+  &:has(a:focus) {
+    outline: none;
+  }
 }
 
-:where(.k-item) .k-link {
+.alter-image-link {
   display: block;
   flex: 0 0 auto;
+  overflow: clip;
+  border-top-left-radius: var(--rounded);
+  border-top-right-radius: var(--rounded);
 }
 
 .k-item-content {
