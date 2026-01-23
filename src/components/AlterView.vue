@@ -5,118 +5,56 @@
       <template #buttons>
         <k-button-group class="k-view-buttons">
           <div class="k-view-button">
-            <k-button
-              :dropdown="true"
-              icon="filter"
-              variant="filled"
-              size="sm"
-              :responsive="'text'"
-              :text="currentFilterLabel"
-              @click="toggleDropdown('filterDropdown')"
-            />
+            <k-button :dropdown="true" icon="filter" variant="filled" size="sm" :responsive="'text'"
+              :text="currentFilterLabel" @click="toggleDropdown('filterDropdown')" />
             <k-dropdown-content ref="filterDropdown" align-x="end">
-              <k-dropdown-item
-                icon="filter"
-                :current="filterMode === null"
-                @click="onFilterChange(null)"
-              >
+              <k-dropdown-item icon="filter" :current="filterMode === null" @click="onFilterChange(null)">
                 {{ $t('medienbaecker.alter.filter.all') }}
               </k-dropdown-item>
-              <k-dropdown-item
-                v-for="option in filterOptions"
-                :key="option.value"
-                icon="filter"
-                :current="filterMode === option.value"
-                @click="onFilterChange(option.value)"
-              >
+              <k-dropdown-item v-for="option in filterOptions" :key="option.value" icon="filter"
+                :current="filterMode === option.value" @click="onFilterChange(option.value)">
                 {{ option.text }}
               </k-dropdown-item>
             </k-dropdown-content>
           </div>
 
           <div v-if="totalImagesCount > 0" class="k-view-button">
-            <k-button
-              variant="filled"
-              size="sm"
-              icon="check"
-              element="span"
-              :theme="isComplete ? 'positive' : null"
-              :badge="
-                unsavedImagesCount > 0
-                  ? { theme: 'orange', text: unsavedImagesCount }
-                  : null
-              "
-            >
+            <k-button variant="filled" size="sm" icon="check" element="span" :theme="isComplete ? 'positive' : null"
+              :badge="unsavedImagesCount > 0
+                ? { theme: 'orange', text: unsavedImagesCount }
+                : null
+                ">
               {{ `${savedImagesCount}/${totalImagesCount}` }}
             </k-button>
           </div>
 
           <div v-if="panelGenerationEnabled" class="k-view-button">
-            <k-button
-              :dropdown="true"
-              :icon="generatingAll ? 'loader' : 'ai'"
-              variant="filled"
-              :theme="generationButtonTheme"
-              size="sm"
-              :responsive="'text'"
-              :text="generationDropdownLabel"
-              :title="generationDropdownLabel"
-              :disabled="generationButtonDisabled"
-              @click="toggleDropdown('scopeDropdown')"
-            />
+            <k-button :dropdown="true" :icon="generatingAll ? 'loader' : 'ai'" variant="filled"
+              :theme="generationButtonTheme" size="sm" :responsive="'text'" :text="generationDropdownLabel"
+              :title="generationDropdownLabel" :disabled="generationButtonDisabled"
+              @click="toggleDropdown('scopeDropdown')" />
             <k-dropdown-content ref="scopeDropdown" align-x="end">
-              <k-dropdown-item
-                v-for="scope in generationScopes"
-                icon="aiGenerateText"
-                :key="scope.value"
-                :disabled="scope.disabled"
-                @click="onGenerateAll(scope.value)"
-              >
+              <k-dropdown-item v-for="scope in generationScopes" icon="aiGenerateText" :key="scope.value"
+                :disabled="scope.disabled" @click="onGenerateAll(scope.value)">
                 {{ scope.text }}
               </k-dropdown-item>
             </k-dropdown-content>
           </div>
 
-          <div
-            v-if="languages.length > 1"
-            class="k-view-button k-languages-dropdown k-languages-dropdown"
-          >
-            <k-button
-              :dropdown="true"
-              icon="translate"
-              variant="filled"
-              size="sm"
-              :responsive="'text'"
-              :text="currentLanguage ? currentLanguage.toUpperCase() : ''"
-              :aria-label="languageButtonLabel"
-              :title="languageButtonLabel"
-              :badge="hasAnyUnsavedLanguages ? { theme: 'orange' } : null"
-              @click="toggleDropdown('languageDropdown')"
-            />
-            <k-dropdown-content
-              ref="languageDropdown"
-              align-x="end"
-              align-y="bottom"
-              theme="dark"
-            >
-              <k-dropdown-item
-                v-if="defaultLanguageItem"
-                :key="defaultLanguageItem.code"
-                class="k-languages-dropdown-item"
-                :current="currentLanguage === defaultLanguageItem.code"
-                :aria-label="defaultLanguageItem.name"
-                :title="defaultLanguageItem.name"
-                @click="onLanguageChange(defaultLanguageItem.code)"
-              >
+          <div v-if="languages.length > 1" class="k-view-button k-languages-dropdown k-languages-dropdown">
+            <k-button :dropdown="true" icon="translate" variant="filled" size="sm" :responsive="'text'"
+              :text="currentLanguage ? currentLanguage.toUpperCase() : ''" :aria-label="languageButtonLabel"
+              :title="languageButtonLabel" :badge="hasAnyUnsavedLanguages ? { theme: 'orange' } : null"
+              @click="toggleDropdown('languageDropdown')" />
+            <k-dropdown-content ref="languageDropdown" align-x="end" align-y="bottom" theme="dark">
+              <k-dropdown-item v-if="defaultLanguageItem" :key="defaultLanguageItem.code"
+                class="k-languages-dropdown-item" :current="currentLanguage === defaultLanguageItem.code"
+                :aria-label="defaultLanguageItem.name" :title="defaultLanguageItem.name"
+                @click="onLanguageChange(defaultLanguageItem.code)">
                 {{ defaultLanguageItem.name }}
                 <span class="k-languages-dropdown-item-info">
-                  <k-icon
-                    v-if="languageHasUnsavedChanges(defaultLanguageItem.code)"
-                    type="edit-line"
-                    class="k-languages-dropdown-item-icon"
-                    role="img"
-                    aria-label="Unsaved changes"
-                  />
+                  <k-icon v-if="languageHasUnsavedChanges(defaultLanguageItem.code)" type="edit-line"
+                    class="k-languages-dropdown-item-icon" role="img" aria-label="Unsaved changes" />
                   <span class="k-languages-dropdown-item-code">
                     {{ defaultLanguageItem.code.toUpperCase() }}
                   </span>
@@ -125,24 +63,13 @@
 
               <hr v-if="defaultLanguageItem && secondaryLanguages.length > 0" />
 
-              <k-dropdown-item
-                v-for="lang in secondaryLanguages"
-                :key="lang.code"
-                class="k-languages-dropdown-item"
-                :current="currentLanguage === lang.code"
-                :aria-label="lang.name"
-                :title="lang.name"
-                @click="onLanguageChange(lang.code)"
-              >
+              <k-dropdown-item v-for="lang in secondaryLanguages" :key="lang.code" class="k-languages-dropdown-item"
+                :current="currentLanguage === lang.code" :aria-label="lang.name" :title="lang.name"
+                @click="onLanguageChange(lang.code)">
                 {{ lang.name }}
                 <span class="k-languages-dropdown-item-info">
-                  <k-icon
-                    v-if="languageHasUnsavedChanges(lang.code)"
-                    type="edit-line"
-                    class="k-languages-dropdown-item-icon"
-                    role="img"
-                    aria-label="Unsaved changes"
-                  />
+                  <k-icon v-if="languageHasUnsavedChanges(lang.code)" type="edit-line"
+                    class="k-languages-dropdown-item-icon" role="img" aria-label="Unsaved changes" />
                   <span class="k-languages-dropdown-item-code">
                     {{ lang.code.toUpperCase() }}
                   </span>
@@ -152,12 +79,8 @@
           </div>
         </k-button-group>
 
-        <k-form-controls
-          :has-diff="unsavedImagesCount > 0"
-          :is-processing="isSaving"
-          @discard="discardChanges"
-          @submit="saveAllChanges"
-        />
+        <k-form-controls :has-diff="unsavedImagesCount > 0" :is-processing="isSaving" @discard="discardChanges"
+          @submit="saveAllChanges" />
       </template>
     </k-header>
 
@@ -175,12 +98,7 @@
           <k-breadcrumb :crumbs="formatBreadcrumbs(pageGroup.breadcrumbs)" />
 
           <k-button-group class="k-section-buttons">
-            <k-button
-              variant="filled"
-              size="sm"
-              element="span"
-              :badge="badgeForPage(pageGroup.pageId)"
-            >
+            <k-button variant="filled" size="sm" element="span" :badge="badgeForPage(pageGroup.pageId)">
               {{ pageGroup.images.length }}
               {{
                 pageGroup.images.length === 1
@@ -189,28 +107,17 @@
               }}
             </k-button>
 
-            <k-button
-              v-if="pageGroup.hasParentDrafts || pageGroup.pageStatus"
-              element="span"
-              variant="filled"
-              size="sm"
-              :icon="
-                pageGroup.hasParentDrafts
-                  ? 'status-draft'
-                  : pageStatusUi(pageGroup).icon
-              "
-              :theme="
-                pageGroup.hasParentDrafts
+            <k-button v-if="pageGroup.hasParentDrafts || pageGroup.pageStatus" element="span" variant="filled" size="sm"
+              :icon="pageGroup.hasParentDrafts
+                ? 'status-draft'
+                : pageStatusUi(pageGroup).icon
+                " :theme="pageGroup.hasParentDrafts
                   ? 'negative-icon'
                   : pageStatusUi(pageGroup).theme
-              "
-              :title="
-                pageGroup.hasParentDrafts
+                  " :title="pageGroup.hasParentDrafts
                   ? $t('medienbaecker.alter.parentDraft')
                   : pageStatusUi(pageGroup).title
-              "
-              :responsive="true"
-            >
+                  " :responsive="true">
               {{
                 pageGroup.hasParentDrafts
                   ? $t('page.status.draft')
@@ -220,81 +127,35 @@
           </k-button-group>
         </header>
 
-        <k-items
-          :items="formatItems(pageGroup.images)"
-          layout="cards"
-          size="huge"
-          :link="false"
-        >
+        <k-items :items="formatItems(pageGroup.images)" layout="cards" size="huge" :link="false">
           <template #default="{ item }">
             <div class="k-item k-cards-item" :data-image-id="item.id">
               <k-link :to="item.panelUrl">
-                <k-image-frame
-                  :src="item.thumbUrl"
-                  :alt="getImageData(item.id).alt"
-                  back="pattern"
-                  ratio="3/2"
-                />
+                <k-image-frame :src="item.thumbUrl" :alt="getImageData(item.id).alt" back="pattern" ratio="3/2" />
               </k-link>
 
               <div class="k-item-content">
-                <k-textarea-field
-                  :label="item.filename"
-                  name="alt"
-                  type="textarea"
-                  :value="
-                    currentImages[item.id] ? currentImages[item.id].alt : ''
-                  "
-                  @input="onAltTextInput(item.id, $event)"
-                  @focusin.native="setActiveImage(item.id)"
-                  @mousedown.native="setActiveImage(item.id)"
-                  @keydown.native="onAltTextKeydown(item.id, $event)"
-                  :placeholder="placeholderFor(item)"
-                  :buttons="false"
-                  :counter="true"
-                  :maxlength="maxLength || null"
-                  size="small"
-                />
-                <div
-                  v-if="
-                    shouldShowGenerateButton(item.id) || hasChanges(item.id)
-                  "
-                  class="k-form-controls"
-                >
-                  <k-button
-                    v-if="shouldShowGenerateButton(item.id)"
-                    :icon="
-                      generating[item.id]
-                        ? 'loader'
-                        : item.hasAnyAlt
-                        ? 'translateAi'
-                        : 'aiGenerateText'
-                    "
-                    variant="filled"
-                    theme="orange-icon"
-                    size="sm"
-                    :responsive="'icon'"
-                    :disabled="generating[item.id]"
-                    @click="onGenerateImage(item.id)"
-                  />
+                <k-textarea-field :label="item.filename" name="alt" type="textarea" :value="currentImages[item.id] ? currentImages[item.id].alt : ''
+                  " @input="onAltTextInput(item.id, $event)" @focusin.native="setActiveImage(item.id)"
+                  @mousedown.native="setActiveImage(item.id)" @keydown.native="onAltTextKeydown(item.id, $event)"
+                  :placeholder="placeholderFor(item)" :buttons="false" :counter="true" :maxlength="maxLength || null"
+                  size="small" />
+                <div v-if="
+                  shouldShowGenerateButton(item.id) || hasChanges(item.id)
+                " class="k-form-controls">
+                  <k-button v-if="shouldShowGenerateButton(item.id)" :icon="generating[item.id]
+                    ? 'loader'
+                    : item.hasAnyAlt
+                      ? 'translateAi'
+                      : 'aiGenerateText'
+                    " variant="filled" theme="orange-icon" size="sm" :responsive="'icon'"
+                    :disabled="generating[item.id]" @click="onGenerateImage(item.id)" />
 
                   <k-button-group v-if="hasChanges(item.id)" layout="collapsed">
-                    <k-button
-                      icon="undo"
-                      variant="filled"
-                      theme="notice"
-                      size="sm"
-                      @click="discardImage(item.id)"
-                    >
+                    <k-button icon="undo" variant="filled" theme="notice" size="sm" @click="discardImage(item.id)">
                       {{ $t('discard') }}
                     </k-button>
-                    <k-button
-                      icon="check"
-                      variant="filled"
-                      theme="notice"
-                      size="sm"
-                      @click="saveImage(item.id)"
-                    >
+                    <k-button icon="check" variant="filled" theme="notice" size="sm" @click="saveImage(item.id)">
                       {{ $t('save') }}
                     </k-button>
                   </k-button-group>
@@ -305,14 +166,8 @@
         </k-items>
       </k-section>
 
-      <k-pagination
-        v-if="pagination.total > pagination.limit"
-        :page="pagination.page"
-        :total="pagination.total"
-        :limit="pagination.limit"
-        :details="true"
-        @paginate="onPageChange"
-      />
+      <k-pagination v-if="pagination.total > pagination.limit" :page="pagination.page" :total="pagination.total"
+        :limit="pagination.limit" :details="true" @paginate="onPageChange" />
     </template>
   </k-panel-inside>
 </template>
@@ -936,8 +791,8 @@ export default {
         const message =
           generated > 0
             ? this.$t('medienbaecker.alter.generate.success.all', {
-                count: generated,
-              })
+              count: generated,
+            })
             : this.$t('medienbaecker.alter.generate.none');
 
         this.applyGenerationResponse(response);
@@ -982,8 +837,8 @@ export default {
         const generated = Number(response?.generated ?? 0);
         const didTranslate = Array.isArray(response?.images)
           ? response.images
-              .find((img) => img.imageId === imageId)
-              ?.languages?.some((entry) => entry.status === 'translated')
+            .find((img) => img.imageId === imageId)
+            ?.languages?.some((entry) => entry.status === 'translated')
           : false;
         const message =
           generated > 0
@@ -1066,7 +921,7 @@ export default {
 
       try {
         sessionStorage.removeItem(resetKey);
-      } catch (e) {}
+      } catch (e) { }
 
       return true;
     },
