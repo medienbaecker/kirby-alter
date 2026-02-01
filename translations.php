@@ -18,4 +18,3 @@ foreach (glob(__DIR__ . '/translations/*.php') ?: [] as $file) {
 }
 
 return $translations;
-

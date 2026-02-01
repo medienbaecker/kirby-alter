@@ -2,7 +2,7 @@
 
 return [
 	'alter' => function ($kirby) {
-		$panelGeneration = option('medienbaecker.alter.panel.generation', option('medienbaecker.alter.panelGeneration', false)) === true;
+		$panelGeneration = option('medienbaecker.alter.panel.generation', false) === true;
 
 		return [
 			'label' => t('medienbaecker.alter.title'),

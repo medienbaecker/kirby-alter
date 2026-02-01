@@ -335,11 +335,11 @@ class AltTextGenerator
 	}
 
 	/**
-	* Auto-fill conditions:
-	* - published/latest alt is empty
-	* - draft alt is not modified (either missing or equal to latest alt)
-	*
-	* This permits filling alt even when other draft fields exist.
+	 * Auto-fill conditions:
+	 * - published/latest alt is empty
+	 * - draft alt is not modified (either missing or equal to latest alt)
+	 *
+	 * This permits filling alt even when other draft fields exist.
 	 */
 	private function shouldAutofillAlt($image, ?string $languageCode): bool
 	{
@@ -409,14 +409,14 @@ class AltTextGenerator
 
 				// Track unique images processed (only count once per image, not per language)
 				if ($language === reset($languages)) {
-						$uniqueImagesProcessed++;
-					}
+					$uniqueImagesProcessed++;
+				}
 
-					$this->cli->out('');
-					$this->cli->bold()->out('  ' . $firstInstance->filename() . ' (' . count($instances) . ' pages)');
+				$this->cli->out('');
+				$this->cli->bold()->out('  ' . $firstInstance->filename() . ' (' . count($instances) . ' pages)');
 
-					try {
-						$result = $this->generateOrGetAltText($firstInstance, $hash, $language, $instances, $allLanguages);
+				try {
+					$result = $this->generateOrGetAltText($firstInstance, $hash, $language, $instances, $allLanguages);
 
 					if ($result) {
 						$altText = $result['text'];
@@ -735,33 +735,33 @@ class AltTextGenerator
 		}
 
 		return kirby()->impersonate('kirby', function () use ($image, $altText, $languageCode) {
-				$changes = $image->version('changes');
+			$changes = $image->version('changes');
 
-				// If draft alt was modified and overwrite is false, do not modify it
-				if ($this->config['overwrite'] !== true) {
-					$latestAlt = $this->latestAlt($image, $languageCode);
+			// If draft alt was modified and overwrite is false, do not modify it
+			if ($this->config['overwrite'] !== true) {
+				$latestAlt = $this->latestAlt($image, $languageCode);
 				$draft = $this->draftAltInfo($image, $languageCode);
 
 				if ($draft['exists'] === true && $draft['hasKey'] === true && $draft['value'] !== $latestAlt) {
 					return $image;
-					}
 				}
+			}
 
-				$latestData = $this->contentArrayForVersion($image, 'latest', $languageCode);
-				$draftData  = $this->versionExists($changes, $languageCode)
-					? $this->contentArrayForVersion($image, 'changes', $languageCode)
-					: [];
+			$latestData = $this->contentArrayForVersion($image, 'latest', $languageCode);
+			$draftData  = $this->versionExists($changes, $languageCode)
+				? $this->contentArrayForVersion($image, 'changes', $languageCode)
+				: [];
 
-				// Preserve other draft fields; overwrite alt
-				$merged = array_merge($latestData, $draftData);
-				$merged['alt'] = $altText;
+			// Preserve other draft fields; overwrite alt
+			$merged = array_merge($latestData, $draftData);
+			$merged['alt'] = $altText;
 
-				$languageCode === null
-					? $changes->save($merged)
-					: $changes->save($merged, $languageCode);
+			$languageCode === null
+				? $changes->save($merged)
+				: $changes->save($merged, $languageCode);
 
-				return $image;
-			});
+			return $image;
+		});
 	}
 
 	private function getAltTextForLanguage($image, ?string $languageCode)
