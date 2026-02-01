@@ -30,6 +30,15 @@ class PanelGenerator extends Generator
 
 	public function generateForImage($image, array $languages, $defaultLanguage): array
 	{
+		if (!static::isSupported($image)) {
+			return [
+				'imageId' => $image->id(),
+				'generated' => 0,
+				'languages' => [],
+				'skipped' => 'unsupported format',
+			];
+		}
+
 		$defaultCode = $defaultLanguage?->code();
 		$imagePayload = null;
 

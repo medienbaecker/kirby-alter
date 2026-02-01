@@ -382,6 +382,10 @@ return [
 				foreach (Generator::allImages() as $entry) {
 					$image = $entry['image'];
 
+					if (!Generator::isSupported($image)) {
+						continue;
+					}
+
 					if ($allowedTemplates !== null) {
 						$imageTemplate = $image->template();
 						if (!in_array($imageTemplate, $allowedTemplates, true)) {

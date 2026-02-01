@@ -11,6 +11,8 @@ use Kirby\Toolkit\Str;
  */
 class Generator
 {
+	protected const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
 	protected string $apiKey;
 	protected string $model;
 	protected $prompt;
@@ -252,6 +254,11 @@ class Generator
 		}
 
 		return [$baseAlt, $baseLanguageCode];
+	}
+
+	public static function isSupported($image): bool
+	{
+		return in_array($image->mime(), static::SUPPORTED_MIME_TYPES, true);
 	}
 
 	/**

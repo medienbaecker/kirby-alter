@@ -239,8 +239,16 @@ class AltTextGenerator extends Generator
 		foreach (static::allImages($pages) as $entry) {
 			$image = $entry['image'];
 			$parent = $entry['parent'];
-			$hash = $this->getImageHash($image);
 			$totalScanned++;
+
+			if (!static::isSupported($image)) {
+				if ($this->cliConfig['verbose']) {
+					$this->cli->dim()->out('  Skipping ' . $image->filename() . ' (unsupported format: ' . $image->mime() . ')');
+				}
+				continue;
+			}
+
+			$hash = $this->getImageHash($image);
 
 			if (!isset($imagesByHash[$hash])) {
 				$imagesByHash[$hash] = [
