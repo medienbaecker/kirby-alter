@@ -2,6 +2,7 @@
 
 use Kirby\Exception\NotFoundException;
 use Kirby\Exception\PermissionException;
+use Medienbaecker\Alter\PanelGenerator;
 
 $versionExists = static function ($version, ?string $code): bool {
 	return $code === null
@@ -446,10 +447,11 @@ return [
 				}
 			}
 
-			$generator = new AlterPanelGenerator([
+			$generator = new PanelGenerator([
 				'apiKey' => $apiKey,
 				'model' => option('medienbaecker.alter.api.model', option('medienbaecker.alter.model', 'claude-haiku-4-5')),
 				'prompt' => option('medienbaecker.alter.prompt'),
+				'maxLength' => option('medienbaecker.alter.maxLength', false),
 			]);
 
 			try {
