@@ -98,7 +98,9 @@ The prompt option can be either a string or a callback function that receives 
 ```php
 'prompt' => function ($file) {
   $prompt = 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc.';
-  $prompt .= ' The image is on a page called "' . $file->page()->title() . '".';
+  if ($file->parent() instanceof \Kirby\Cms\Page) {
+    $prompt .= ' The image is on a page called "' . $file->parent()->title() . '".';
+  }
   $prompt .= ' The site is called "' . $file->site()->title() . '".';
   $prompt .= ' Return the alt text only, without any additional text or formatting.';
 
