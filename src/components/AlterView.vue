@@ -29,11 +29,13 @@
 					</div>
 
 					<div v-if="panelGenerationEnabled" class="k-view-button">
-						<k-button :dropdown="languages.length > 1" :icon="generatingAll ? 'loader' : 'ai'"
-							variant="filled" theme="orange-icon" size="sm" :responsive="'text'"
-							:text="generationDropdownLabel" :title="generationDropdownLabel"
+						<k-button :dropdown="!generatingAll && languages.length > 1"
+							:icon="generationButtonIcon"
+							variant="filled" :theme="generationButtonTheme" size="sm"
+							:responsive="'text'"
+							:text="generationButtonLabel" :title="generationButtonLabel"
 							:disabled="generationButtonDisabled"
-							@click="languages.length > 1 ? toggleDropdown('scopeDropdown') : onGenerateAll('current')" />
+							@click="generatingAll ? stopGeneration() : (languages.length > 1 ? toggleDropdown('scopeDropdown') : onGenerateAll('current'))" />
 						<k-dropdown-content ref="scopeDropdown" align-x="end">
 							<k-dropdown-item v-for="scope in generationScopes" icon="aiGenerateText" :key="scope.value"
 								:disabled="scope.disabled" @click="onGenerateAll(scope.value)">
@@ -230,6 +232,7 @@ export default {
 			filterMode: null,
 			generationScope: 'current',
 			generatingAll: false,
+			cancelGeneration: false,
 			// "active textarea" tracking for Cmd+S (save current item)
 			activeImageId: null,
 			lastCmdSHandledAt: 0,
@@ -346,12 +349,19 @@ export default {
 
 			return resolved;
 		},
-		generationButtonDisabled() {
-			if (this.generatingAll) return true;
-			return this.generationScopes.every((scope) => scope.disabled === true);
+		generationButtonIcon() {
+			return this.generatingAll ? 'cancel' : 'ai';
 		},
-		generationDropdownLabel() {
-			return this.$t('medienbaecker.alter.generate.label');
+		generationButtonTheme() {
+			return this.generatingAll ? 'negative' : 'orange-icon';
+		},
+		generationButtonLabel() {
+			return this.generatingAll
+				? this.$t('medienbaecker.alter.generate.stop')
+				: this.$t('medienbaecker.alter.generate.label');
+		},
+		generationButtonDisabled() {
+			return !this.generatingAll && this.generationScopes.every((scope) => scope.disabled === true);
 		},
 
 		// Filter UI
@@ -751,6 +761,10 @@ export default {
 			this.generationScope = allowed.includes(scope) ? scope : 'current';
 		},
 
+		stopGeneration() {
+			this.cancelGeneration = true;
+		},
+
 		async onGenerateAll(scope = this.generationScope) {
 			this.setGenerationScope(scope);
 			if (this.canGenerateForScope(scope) !== true) return;
@@ -760,6 +774,7 @@ export default {
 		async generateForAll(scope = this.generationScope) {
 			if (!this.panelGenerationEnabled) return;
 
+			this.cancelGeneration = false;
 			await this.flushAltDraftSaves();
 
 			const imageIds = [...new Set(this.images.map((image) => image.id))];
@@ -797,6 +812,7 @@ export default {
 
 			try {
 				for (const imageId of imageIds) {
+					if (this.cancelGeneration) break;
 					this.$set(this.generating, imageId, true);
 					try {
 						const response = await this.$api.post('alter/generate', {
