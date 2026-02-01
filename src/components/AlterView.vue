@@ -1235,7 +1235,7 @@ export default {
 
 .alter-card {
   display: flex;
-  flex-flow: column nowrap;
+  flex-direction: column;
 
   /* Remove default .k-item outline as only image is a link */
   &:has(a:focus) {
@@ -1261,12 +1261,9 @@ export default {
 
 .k-item .k-form-controls {
   display: flex;
-  align-items: space-between;
-  gap: var(--spacing-2);
-}
-
-.k-item .k-form-controls .k-button-group {
-  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-4);
 }
 
 .k-field-name-alt {
