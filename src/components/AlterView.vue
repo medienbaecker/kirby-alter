@@ -115,9 +115,9 @@
                   ? 'negative-icon'
                   : pageStatusUi(pageGroup).theme
                   " :title="pageGroup.hasParentDrafts
-                  ? $t('medienbaecker.alter.parentDraft')
-                  : pageStatusUi(pageGroup).title
-                  " :responsive="true">
+                    ? $t('medienbaecker.alter.parentDraft')
+                    : pageStatusUi(pageGroup).title
+                    " :responsive="true">
               {{
                 pageGroup.hasParentDrafts
                   ? $t('page.status.draft')
@@ -146,10 +146,15 @@
                 " class="k-form-controls">
                   <k-button v-if="shouldShowGenerateButton(item.id)" :icon="generating[item.id]
                     ? 'loader'
-                    : item.hasAnyAlt
-                      ? 'translateAi'
-                      : 'aiGenerateText'
-                    " variant="filled" theme="orange-icon" size="sm" :responsive="'icon'"
+                    : item.hasAnyAlt && languages.length > 1
+                      ? 'translate'
+                      : 'ai'
+                    " :text="hasChanges(item.id)
+                      ? null
+                      : item.hasAnyAlt && languages.length > 1
+                        ? $t('medienbaecker.alter.generate.translate')
+                        : $t('medienbaecker.alter.generate.label')
+                    " variant="filled" theme="orange-icon" size="sm"
                     :disabled="generating[item.id]" @click="onGenerateImage(item.id)" />
 
                   <k-button-group v-if="hasChanges(item.id)" layout="collapsed">
