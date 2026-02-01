@@ -56,146 +56,167 @@ return [
 
 			// Collect all images
 			$allImages = [];
+
+			// Helper to process a single image and return its data array
+			$processImage = function ($image, $parentId, $parentTitle, $parentPanelUrl, $parentPanelPath, $parentSort, $parentStatus, $hasParentDrafts, $breadcrumbs, $sortKey) use ($languageCode, $defaultLanguageCode, $siteLanguages, $allowedTemplates, $latestContentArray, $versionExists, $versionContentArray, &$unsavedByLanguage) {
+				if ($allowedTemplates !== null) {
+					$imageTemplate = $image->template();
+					if (!in_array($imageTemplate, $allowedTemplates)) {
+						return null;
+					}
+				}
+
+				$latestContent = $latestContentArray($image, $languageCode);
+				$latestAlt = (string)($latestContent['alt'] ?? '');
+				$changes = $image->version('changes');
+				$hasAnyAlt = false;
+				$hasMissingAlt = false;
+
+				if (!empty($siteLanguages)) {
+					foreach ($siteLanguages as $lang) {
+						$langCode = $lang->code();
+						$langLatestContent = $latestContentArray($image, $langCode);
+						$langLatestAlt = (string)($langLatestContent['alt'] ?? '');
+						$langCurrentAlt = $langLatestAlt;
+
+						if ($versionExists($changes, $langCode) === true) {
+							$langChangesContent = $versionContentArray($changes, $langCode);
+							if (array_key_exists('alt', $langChangesContent) === true) {
+								$langCurrentAlt = (string)($langChangesContent['alt'] ?? '');
+								if ($langCurrentAlt !== $langLatestAlt) {
+									$unsavedByLanguage[$langCode] = ($unsavedByLanguage[$langCode] ?? 0) + 1;
+								}
+							}
+						}
+
+						if ($hasAnyAlt !== true && trim((string)$langCurrentAlt) !== '') {
+							$hasAnyAlt = true;
+						}
+						if ($hasMissingAlt !== true && trim((string)$langCurrentAlt) === '') {
+							$hasMissingAlt = true;
+						}
+					}
+				}
+
+				$changesContent = $versionExists($changes, $languageCode)
+					? $versionContentArray($changes, $languageCode)
+					: [];
+
+				$currentAlt = array_key_exists('alt', $changesContent)
+					? (string)($changesContent['alt'] ?? '')
+					: $latestAlt;
+				$hasChanges = $currentAlt !== $latestAlt;
+
+				if (empty($siteLanguages) && trim((string)$currentAlt) !== '') {
+					$hasAnyAlt = true;
+				}
+				if (empty($siteLanguages) && trim((string)$currentAlt) === '') {
+					$hasMissingAlt = true;
+				}
+
+				$changesPath = $parentPanelPath . '/files/' . $image->filename();
+
+				$defaultAlt = $currentAlt;
+				if ($defaultLanguageCode !== null && $defaultLanguageCode !== $languageCode) {
+					$defaultLatest = $latestContentArray($image, $defaultLanguageCode);
+					$defaultAlt = (string)($defaultLatest['alt'] ?? '');
+					$defaultChangesContent = $versionExists($changes, $defaultLanguageCode)
+						? $versionContentArray($changes, $defaultLanguageCode)
+						: [];
+					if (array_key_exists('alt', $defaultChangesContent)) {
+						$defaultAlt = (string)($defaultChangesContent['alt'] ?? '');
+					}
+				}
+
+				return [
+					'id' => $image->id(),
+					'url' => $image->url(),
+					'thumbUrl' => $image->resize(500, 500)->url(),
+					'filename' => $image->filename(),
+					'alt' => $currentAlt,
+					'altOriginal' => $latestAlt,
+					'hasChanges' => $hasChanges,
+					'hasAnyAlt' => $hasAnyAlt,
+					'hasMissingAlt' => $hasMissingAlt,
+					'changesPath' => $changesPath,
+					'panelUrl' => $image->panel()->url(),
+					'pageUrl' => $parentPanelUrl,
+					'pageTitle' => $parentTitle,
+					'pageId' => $parentId,
+					'pagePanelUrl' => $parentPanelUrl,
+					'pageSort' => $parentSort,
+					'pageStatus' => $parentStatus,
+					'hasParentDrafts' => $hasParentDrafts,
+					'breadcrumbs' => $breadcrumbs,
+					'sortKey' => $sortKey,
+					'language' => $languageCode,
+					'altDefault' => $defaultAlt,
+				];
+			};
+
+			// Collect site-level images
+			$site = site();
+			if ($site->hasImages()) {
+				$siteLabel = t('view.site');
+				$siteBreadcrumbs = [[
+					'title' => $siteLabel,
+					'label' => $siteLabel,
+					'panelUrl' => '/site',
+					'link' => '/site',
+				]];
+
+				foreach ($site->images() as $image) {
+					$result = $processImage(
+						$image, 'site', $siteLabel,
+						'/site', 'site', null, null,
+						false, $siteBreadcrumbs, '000000'
+					);
+					if ($result !== null) {
+						$allImages[] = $result;
+					}
+				}
+			}
+
+			// Collect page images
 			$pages = site()->index(true);
 
 			foreach ($pages as $sitePage) {
 				if ($sitePage->hasImages()) {
-					foreach ($sitePage->images() as $image) {
-						// Skip images with templates not in allowed list
-						if ($allowedTemplates !== null) {
-							$imageTemplate = $image->template();
-							if (!in_array($imageTemplate, $allowedTemplates)) {
-								continue;
-							}
-						}
+					$hasParentDrafts = $sitePage->parents()->filter(fn($p) => $p->isDraft())->isNotEmpty();
 
-								$latestContent = $latestContentArray($image, $languageCode);
-								$latestAlt = (string)($latestContent['alt'] ?? '');
-								$changes = $image->version('changes');
-								$hasAnyAlt = false;
-								$hasMissingAlt = false;
+					$parents = $sitePage->parents()->flip();
+					$sortKey = '';
+					foreach ($parents as $parent) {
+						$sortKey .= sprintf('%06d-', $parent->num() ?? 999999);
+					}
+					$sortKey .= sprintf('%06d', $sitePage->num() ?? 999999);
 
-								// Track unsaved changes per language (for the language dropdown)
-								if (!empty($siteLanguages)) {
-									foreach ($siteLanguages as $lang) {
-										$langCode = $lang->code();
-									$langLatestContent = $latestContentArray($image, $langCode);
-									$langLatestAlt = (string)($langLatestContent['alt'] ?? '');
-									$langCurrentAlt = $langLatestAlt;
-
-									if ($versionExists($changes, $langCode) === true) {
-										$langChangesContent = $versionContentArray($changes, $langCode);
-										if (array_key_exists('alt', $langChangesContent) === true) {
-											$langCurrentAlt = (string)($langChangesContent['alt'] ?? '');
-
-											if ($langCurrentAlt !== $langLatestAlt) {
-												$unsavedByLanguage[$langCode] = ($unsavedByLanguage[$langCode] ?? 0) + 1;
-											}
-										}
-									}
-
-										if (
-											$hasAnyAlt !== true &&
-											trim((string)$langCurrentAlt) !== ''
-										) {
-											$hasAnyAlt = true;
-										}
-
-										if (
-											$hasMissingAlt !== true &&
-											trim((string)$langCurrentAlt) === ''
-										) {
-											$hasMissingAlt = true;
-										}
-									}
-								}
-
-						$changesContent = $versionExists($changes, $languageCode)
-							? $versionContentArray($changes, $languageCode)
-							: [];
-
-							$currentAlt = array_key_exists('alt', $changesContent)
-								? (string)($changesContent['alt'] ?? '')
-								: $latestAlt;
-							$hasChanges = $currentAlt !== $latestAlt;
-
-								if (empty($siteLanguages) && trim((string)$currentAlt) !== '') {
-									$hasAnyAlt = true;
-								}
-
-								if (empty($siteLanguages) && trim((string)$currentAlt) === '') {
-									$hasMissingAlt = true;
-								}
-
-							$changesPath = $sitePage->panel()->path() . '/files/' . $image->filename();
-
-							// Effective default-language alt (used as placeholder in panel)
-							$defaultAlt = $currentAlt;
-						if ($defaultLanguageCode !== null && $defaultLanguageCode !== $languageCode) {
-							$defaultLatest = $latestContentArray($image, $defaultLanguageCode);
-							$defaultAlt = (string)($defaultLatest['alt'] ?? '');
-							$defaultChangesContent = $versionExists($changes, $defaultLanguageCode)
-								? $versionContentArray($changes, $defaultLanguageCode)
-								: [];
-							if (array_key_exists('alt', $defaultChangesContent)) {
-								$defaultAlt = (string)($defaultChangesContent['alt'] ?? '');
-							}
-						}
-
-						// Check if any parent pages are drafts
-						$hasParentDrafts = $sitePage->parents()->filter(fn($p) => $p->isDraft())->isNotEmpty();
-
-						// Build breadcrumbs and sort key
-						$parents = $sitePage->parents()->flip();
-						$sortKey = '';
-
-						// Build hierarchical sort key with parent sort numbers
-						foreach ($parents as $parent) {
-							$sortKey .= sprintf('%06d-', $parent->num() ?? 999999);
-						}
-						$sortKey .= sprintf('%06d', $sitePage->num() ?? 999999);
-
-						// Build breadcrumbs array for clickable navigation
-						$breadcrumbs = [];
-						foreach ($parents as $parent) {
-							$breadcrumbs[] = [
-								'title' => $parent->title()->value(),
-								'label' => $parent->title()->value(),
-								'panelUrl' => $parent->panel()->url(),
-								'link' => $parent->panel()->url(),
-							];
-						}
+					$breadcrumbs = [];
+					foreach ($parents as $parent) {
 						$breadcrumbs[] = [
-							'title' => $sitePage->title()->value(),
-							'label' => $sitePage->title()->value(),
-							'panelUrl' => $sitePage->panel()->url(),
-							'link' => $sitePage->panel()->url(),
+							'title' => $parent->title()->value(),
+							'label' => $parent->title()->value(),
+							'panelUrl' => $parent->panel()->url(),
+							'link' => $parent->panel()->url(),
 						];
+					}
+					$breadcrumbs[] = [
+						'title' => $sitePage->title()->value(),
+						'label' => $sitePage->title()->value(),
+						'panelUrl' => $sitePage->panel()->url(),
+						'link' => $sitePage->panel()->url(),
+					];
 
-								$allImages[] = [
-									'id' => $image->id(),
-									'url' => $image->url(),
-									'thumbUrl' => $image->resize(500, 500)->url(),
-							'filename' => $image->filename(),
-							'alt' => $currentAlt,
-									'altOriginal' => $latestAlt,
-									'hasChanges' => $hasChanges,
-									'hasAnyAlt' => $hasAnyAlt,
-									'hasMissingAlt' => $hasMissingAlt,
-									'changesPath' => $changesPath,
-									'panelUrl' => $image->panel()->url(),
-									'pageUrl' => $image->page()->url(),
-									'pageTitle' => $sitePage->title()->value(),
-							'pageId' => $sitePage->id(),
-							'pagePanelUrl' => $sitePage->panel()->url(),
-							'pageSort' => $sitePage->num(),
-							'pageStatus' => $sitePage->status(),
-							'hasParentDrafts' => $hasParentDrafts,
-							'breadcrumbs' => $breadcrumbs,
-							'sortKey' => $sortKey,
-							'language' => $languageCode,
-							'altDefault' => $defaultAlt,
-						];
+					foreach ($sitePage->images() as $image) {
+						$result = $processImage(
+							$image, $sitePage->id(), $sitePage->title()->value(),
+							$sitePage->panel()->url(), $sitePage->panel()->path(),
+							$sitePage->num(), $sitePage->status(),
+							$hasParentDrafts, $breadcrumbs, $sortKey
+						);
+						if ($result !== null) {
+							$allImages[] = $result;
+						}
 					}
 				}
 			}
@@ -504,19 +525,11 @@ return [
 						? $changes->delete()
 						: $changes->delete($languageCode);
 				} else {
-					// Keep other draft fields, just remove alt
-					if ($languageCode === null) {
-						$changes->replace($changesContent);
-					} else {
-						$changes->replace($changesContent, $languageCode);
-					}
-					// Now, restore alt in the draft if other fields exist
+					// Keep other draft fields, update alt
 					$changesContent['alt'] = $alt;
-					if ($languageCode === null) {
-						$changes->replace($changesContent);
-					} else {
-						$changes->replace($changesContent, $languageCode);
-					}
+					$languageCode === null
+						? $changes->replace($changesContent)
+						: $changes->replace($changesContent, $languageCode);
 				}
 			}
 
