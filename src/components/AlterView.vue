@@ -1262,10 +1262,10 @@ export default {
 
 .k-item-content {
   display: flex;
-  flex-flow: column nowrap;
+  flex-direction: column;
   flex-grow: 1;
   gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-3) var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
 }
 
 .k-item .k-form-controls {
