@@ -662,6 +662,14 @@ export default {
 				}
 
 				this.applyGeneratedAlt(imageId, currentEntry.text ?? '');
+
+				for (const entry of languages) {
+					const code = entry?.language;
+					if (!code || code === currentCode) continue;
+					if (!['generated', 'translated'].includes(entry.status)) continue;
+					const current = Number(this.unsavedByLanguage?.[code] ?? 0);
+					this.$set(this.unsavedByLanguage, code, current + 1);
+				}
 			}
 		},
 
