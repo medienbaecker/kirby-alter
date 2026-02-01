@@ -152,17 +152,11 @@
 								<div v-if="
 									shouldShowGenerateButton(item.id) || hasChanges(item.id)
 								" class="k-form-controls">
-									<k-button v-if="shouldShowGenerateButton(item.id)" :icon="generating[item.id]
-										? 'loader'
-										: item.hasAnyAlt && languages.length > 1
-											? 'translate'
-											: 'ai'
-										" :text="hasChanges(item.id)
-						? null
-						: item.hasAnyAlt && languages.length > 1
-							? $t('medienbaecker.alter.generate.translate')
-							: $t('medienbaecker.alter.generate.label')
-						" variant="filled" theme="orange-icon" size="sm" :disabled="generating[item.id]"
+									<k-button v-if="shouldShowGenerateButton(item.id)"
+										:icon="imageGenerateIcon(item)"
+										:text="imageGenerateLabel(item)"
+										variant="filled" theme="orange-icon" size="sm"
+										:disabled="generating[item.id]"
 										@click="onGenerateImage(item.id)" />
 
 									<k-button-group v-if="hasChanges(item.id)" layout="collapsed">
@@ -603,6 +597,55 @@ export default {
 			return currentEmpty;
 		},
 
+		canTranslate(item) {
+			if (this.languages.length <= 1) return false;
+			const map = item.altByLanguage;
+			if (!map) return false;
+			const current = this.currentLanguage;
+			return Object.entries(map).some(([code, has]) => code !== current && has);
+		},
+
+		canGenerateAll(item) {
+			const map = item.altByLanguage;
+			if (!map || Object.keys(map).length === 0) {
+				const alt = this.currentImages?.[item.id]?.alt ?? item.alt ?? '';
+				return String(alt).trim().length === 0;
+			}
+			return Object.values(map).some((has) => !has);
+		},
+
+		imageGenerateIcon(item) {
+			if (this.generating[item.id]) return 'loader';
+			return this.canTranslate(item) ? 'translate' : 'ai';
+		},
+
+		translationSource(item) {
+			const map = item.altByLanguage;
+			if (!map) return null;
+			const defaultCode = this.defaultLanguageCode;
+			if (defaultCode && map[defaultCode]) return defaultCode;
+			return Object.keys(map).find((code) => map[code]) || null;
+		},
+
+		imageGenerateLabel(item) {
+			if (this.hasChanges(item.id)) return null;
+			if (!this.canTranslate(item)) {
+				return this.$t('medienbaecker.alter.generate.label');
+			}
+			const source = this.translationSource(item);
+			const label = this.$t('medienbaecker.alter.generate.translate');
+			return source ? `${label} (${source.toUpperCase()})` : label;
+		},
+
+		updateAltByLanguage(imageId, hasAlt) {
+			const code = this.currentLanguage;
+			if (!code) return;
+			const item = this.images.find((img) => img.id === imageId);
+			if (!item) return;
+			if (!item.altByLanguage) item.altByLanguage = {};
+			this.$set(item.altByLanguage, code, hasAlt);
+		},
+
 		canGenerateForScope(scope) {
 			if (this.panelGenerationEnabled !== true) return false;
 
@@ -628,7 +671,7 @@ export default {
 			}
 
 			if (scope === 'all') {
-				return this.images.some((image) => image.hasMissingAlt === true);
+				return this.images.some((image) => this.canGenerateAll(image));
 			}
 
 			return false;
@@ -673,12 +716,22 @@ export default {
 
 				this.applyGeneratedAlt(imageId, currentEntry.text ?? '');
 
+				const imageItem = this.images.find((img) => img.id === imageId);
+
 				for (const entry of languages) {
 					const code = entry?.language;
-					if (!code || code === currentCode) continue;
+					if (!code) continue;
 					if (!['generated', 'translated'].includes(entry.status)) continue;
-					const current = Number(this.unsavedByLanguage?.[code] ?? 0);
-					this.$set(this.unsavedByLanguage, code, current + 1);
+
+					if (imageItem) {
+						if (!imageItem.altByLanguage) imageItem.altByLanguage = {};
+						this.$set(imageItem.altByLanguage, code, true);
+					}
+
+					if (code !== currentCode) {
+						const current = Number(this.unsavedByLanguage?.[code] ?? 0);
+						this.$set(this.unsavedByLanguage, code, current + 1);
+					}
 				}
 			}
 		},
@@ -1012,6 +1065,8 @@ export default {
 				const isChanged = this.hasChanges(imageId);
 				this.updateUnsavedTotals(wasChanged, isChanged);
 
+				this.updateAltByLanguage(imageId, sanitizedValue.length > 0);
+
 				// Debounced draft save
 				this.scheduleAltDraftSave(imageId);
 			}
@@ -1214,6 +1269,7 @@ export default {
 			// Update local state first
 			this.$set(this.currentImages, imageId, { ...original });
 			this.updateUnsavedTotals(wasChanged, this.hasChanges(imageId));
+			this.updateAltByLanguage(imageId, (original.alt ?? '').trim().length > 0);
 
 			try {
 				await this.$api.post('alter/discard', { imageId: image.id });

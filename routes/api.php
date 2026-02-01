@@ -69,8 +69,7 @@ return [
 				$latestContent = $latestContentArray($image, $languageCode);
 				$latestAlt = (string)($latestContent['alt'] ?? '');
 				$changes = $image->version('changes');
-				$hasAnyAlt = false;
-				$hasMissingAlt = false;
+				$altByLanguage = [];
 
 				if (!empty($siteLanguages)) {
 					foreach ($siteLanguages as $lang) {
@@ -89,12 +88,7 @@ return [
 							}
 						}
 
-						if ($hasAnyAlt !== true && trim((string)$langCurrentAlt) !== '') {
-							$hasAnyAlt = true;
-						}
-						if ($hasMissingAlt !== true && trim((string)$langCurrentAlt) === '') {
-							$hasMissingAlt = true;
-						}
+						$altByLanguage[$langCode] = trim((string)$langCurrentAlt) !== '';
 					}
 				}
 
@@ -106,13 +100,6 @@ return [
 					? (string)($changesContent['alt'] ?? '')
 					: $latestAlt;
 				$hasChanges = $currentAlt !== $latestAlt;
-
-				if (empty($siteLanguages) && trim((string)$currentAlt) !== '') {
-					$hasAnyAlt = true;
-				}
-				if (empty($siteLanguages) && trim((string)$currentAlt) === '') {
-					$hasMissingAlt = true;
-				}
 
 				$changesPath = $parent['panelPath'] . '/files/' . $image->filename();
 
@@ -136,8 +123,7 @@ return [
 					'alt' => $currentAlt,
 					'altOriginal' => $latestAlt,
 					'hasChanges' => $hasChanges,
-					'hasAnyAlt' => $hasAnyAlt,
-					'hasMissingAlt' => $hasMissingAlt,
+					'altByLanguage' => $altByLanguage,
 					'changesPath' => $changesPath,
 					'panelUrl' => $image->panel()->url(),
 					'pageUrl' => $parent['panelUrl'],
@@ -247,7 +233,11 @@ return [
 					$generationStats['missingCurrent']++;
 				}
 
-				if (($imageData['hasMissingAlt'] ?? false) === true) {
+				$altByLang = $imageData['altByLanguage'] ?? [];
+				$hasMissing = empty($altByLang)
+					? $currentAlt === ''
+					: in_array(false, $altByLang, true);
+				if ($hasMissing) {
 					$generationStats['missingAny']++;
 				}
 			}
