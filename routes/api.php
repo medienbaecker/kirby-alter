@@ -232,31 +232,31 @@ return [
 				}
 			}
 
-				// Store original total before filtering
-				$originalTotalImages = count($allImages);
+			// Store original total before filtering
+			$originalTotalImages = count($allImages);
 
-				// Generation stats (always based on all images)
-				$generationStats = [
-					'missingCurrent' => 0,
-					'missingAny' => 0,
-				];
+			// Generation stats (always based on all images)
+			$generationStats = [
+				'missingCurrent' => 0,
+				'missingAny' => 0,
+			];
 
-				foreach ($allImages as $imageData) {
-					$currentAlt = trim((string)($imageData['alt'] ?? ''));
-					if ($currentAlt === '') {
-						$generationStats['missingCurrent']++;
-					}
-
-					if (($imageData['hasMissingAlt'] ?? false) === true) {
-						$generationStats['missingAny']++;
-					}
+			foreach ($allImages as $imageData) {
+				$currentAlt = trim((string)($imageData['alt'] ?? ''));
+				if ($currentAlt === '') {
+					$generationStats['missingCurrent']++;
 				}
 
-				// Apply filter
-				$filteredImages = $allImages;
-				if ($filter === 'saved') {
-					$filteredImages = array_filter($allImages, function ($imageData) {
-						return !empty($imageData['alt']) && trim($imageData['alt']) !== '';
+				if (($imageData['hasMissingAlt'] ?? false) === true) {
+					$generationStats['missingAny']++;
+				}
+			}
+
+			// Apply filter
+			$filteredImages = $allImages;
+			if ($filter === 'saved') {
+				$filteredImages = array_filter($allImages, function ($imageData) {
+					return !empty($imageData['alt']) && trim($imageData['alt']) !== '';
 				});
 			} elseif ($filter === 'missing') {
 				$filteredImages = array_filter($allImages, function ($imageData) {
@@ -300,17 +300,17 @@ return [
 					'start' => $offset + 1,
 					'end' => min($offset + $limit, $filteredTotalImages),
 				],
-					'totals' => [
-						'unsaved' => $totalUnsaved,
-						'saved' => $totalSaved,
-						'total' => $originalTotalImages,
-					],
-					'generationStats' => $generationStats,
-				];
-			},
-		],
-		[
-			'pattern' => 'alter/generate',
+				'totals' => [
+					'unsaved' => $totalUnsaved,
+					'saved' => $totalSaved,
+					'total' => $originalTotalImages,
+				],
+				'generationStats' => $generationStats,
+			];
+		},
+	],
+	[
+		'pattern' => 'alter/generate',
 		'method' => 'POST',
 		'action' => function () use ($versionExists, $versionContentArray) {
 			$user = kirby()->user();
@@ -318,7 +318,7 @@ return [
 				throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
 			}
 
-			if (option('medienbaecker.alter.panel.generation', option('medienbaecker.alter.panelGeneration', false)) !== true) {
+			if (option('medienbaecker.alter.panel.generation', false) !== true) {
 				throw new PermissionException(t('medienbaecker.alter.generate.disabled'));
 			}
 
@@ -327,140 +327,140 @@ return [
 				return ['error' => t('medienbaecker.alter.api.key.missing')];
 			}
 
-				$request = kirby()->request();
-				$body = $request->body();
+			$request = kirby()->request();
+			$body = $request->body();
 
-				$languageMode = $body->get('languageMode', 'current');
-				if (!in_array($languageMode, ['all', 'current'], true)) {
-					$languageMode = 'current';
+			$languageMode = $body->get('languageMode', 'current');
+			if (!in_array($languageMode, ['all', 'current'], true)) {
+				$languageMode = 'current';
+			}
+			$autoSelect = $body->get('autoSelect', false);
+			$autoSelect = in_array($autoSelect, [true, 1, '1', 'true'], true);
+			$imageIds = $body->get('imageIds', []);
+
+			if (empty($imageIds)) {
+				$imageIds = $body->get('imageId') ? [$body->get('imageId')] : [];
+			}
+
+			$imageIds = array_unique(array_filter((array)$imageIds));
+
+			if (kirby()->multilang()) {
+				$currentLanguage = kirby()->language();
+				$languages = $languageMode === 'current'
+					? [$currentLanguage ?? kirby()->defaultLanguage()]
+					: kirby()->languages()->values();
+				$defaultLanguage = kirby()->defaultLanguage();
+			} else {
+				$languages = [null];
+				$defaultLanguage = null;
+			}
+
+			$images = [];
+
+			if (empty($imageIds) === true) {
+				if ($autoSelect !== true) {
+					return ['error' => t('medienbaecker.alter.imageNotFound')];
 				}
-				$autoSelect = $body->get('autoSelect', false);
-				$autoSelect = in_array($autoSelect, [true, 1, '1', 'true'], true);
-				$imageIds = $body->get('imageIds', []);
 
-				if (empty($imageIds)) {
-					$imageIds = $body->get('imageId') ? [$body->get('imageId')] : [];
+				$autoLimit = 100;
+
+				$allowedTemplates = kirby()->option('medienbaecker.alter.templates');
+				if (is_string($allowedTemplates)) {
+					$allowedTemplates = [$allowedTemplates];
 				}
 
-				$imageIds = array_unique(array_filter((array)$imageIds));
+				$currentAltForLanguage = static function ($image, ?string $code) use ($versionExists, $versionContentArray): string {
+					$latest = $image->version('latest');
+					$latestContent = $versionContentArray($latest, $code);
+					$latestAlt = (string)($latestContent['alt'] ?? '');
 
-				if (kirby()->multilang()) {
-					$currentLanguage = kirby()->language();
-					$languages = $languageMode === 'current'
-						? [$currentLanguage ?? kirby()->defaultLanguage()]
-						: kirby()->languages()->values();
-					$defaultLanguage = kirby()->defaultLanguage();
-				} else {
-					$languages = [null];
-					$defaultLanguage = null;
-				}
-
-				$images = [];
-
-				if (empty($imageIds) === true) {
-					if ($autoSelect !== true) {
-						return ['error' => t('medienbaecker.alter.imageNotFound')];
+					$changes = $image->version('changes');
+					if ($versionExists($changes, $code) !== true) {
+						return $latestAlt;
 					}
 
-					$autoLimit = 100;
-
-					$allowedTemplates = kirby()->option('medienbaecker.alter.templates');
-					if (is_string($allowedTemplates)) {
-						$allowedTemplates = [$allowedTemplates];
+					$changesContent = $versionContentArray($changes, $code);
+					if (array_key_exists('alt', $changesContent) !== true) {
+						return $latestAlt;
 					}
 
-					$currentAltForLanguage = static function ($image, ?string $code) use ($versionExists, $versionContentArray): string {
-						$latest = $image->version('latest');
-						$latestContent = $versionContentArray($latest, $code);
-						$latestAlt = (string)($latestContent['alt'] ?? '');
+					return (string)($changesContent['alt'] ?? '');
+				};
 
-						$changes = $image->version('changes');
-						if ($versionExists($changes, $code) !== true) {
-							return $latestAlt;
-						}
+				$pages = site()->index(true);
 
-						$changesContent = $versionContentArray($changes, $code);
-						if (array_key_exists('alt', $changesContent) !== true) {
-							return $latestAlt;
-						}
+				foreach ($pages as $sitePage) {
+					if ($sitePage->hasImages() !== true) {
+						continue;
+					}
 
-						return (string)($changesContent['alt'] ?? '');
-					};
-
-					$pages = site()->index(true);
-
-					foreach ($pages as $sitePage) {
-						if ($sitePage->hasImages() !== true) {
-							continue;
-						}
-
-						foreach ($sitePage->images() as $image) {
-							if ($allowedTemplates !== null) {
-								$imageTemplate = $image->template();
-								if (!in_array($imageTemplate, $allowedTemplates, true)) {
-									continue;
-								}
-							}
-
-							if ($image->permissions()->update() !== true) {
+					foreach ($sitePage->images() as $image) {
+						if ($allowedTemplates !== null) {
+							$imageTemplate = $image->template();
+							if (!in_array($imageTemplate, $allowedTemplates, true)) {
 								continue;
 							}
-
-							if ($languageMode === 'current') {
-								$target = $languages[0] ?? null;
-								$code = $target?->code();
-								$alt = trim((string)$currentAltForLanguage($image, $code));
-								if ($alt === '') {
-									$images[] = $image;
-									if (count($images) >= $autoLimit) {
-										break 2;
-									}
-								}
-								continue;
-							}
-
-							// all languages
-							foreach ($languages as $target) {
-								$code = $target?->code();
-								$alt = trim((string)$currentAltForLanguage($image, $code));
-								if ($alt === '') {
-									$images[] = $image;
-									if (count($images) >= $autoLimit) {
-										break 3;
-									}
-									break;
-								}
-							}
-						}
-					}
-
-					if (empty($images)) {
-						return [
-							'success' => true,
-							'generated' => 0,
-							'images' => [],
-						];
-					}
-				} else {
-					foreach ($imageIds as $imageId) {
-						$image = kirby()->file($imageId);
-						if (!$image) {
-							throw new NotFoundException(t('medienbaecker.alter.imageNotFound'));
 						}
 
 						if ($image->permissions()->update() !== true) {
-							throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
+							continue;
 						}
 
-						$images[] = $image;
+						if ($languageMode === 'current') {
+							$target = $languages[0] ?? null;
+							$code = $target?->code();
+							$alt = trim((string)$currentAltForLanguage($image, $code));
+							if ($alt === '') {
+								$images[] = $image;
+								if (count($images) >= $autoLimit) {
+									break 2;
+								}
+							}
+							continue;
+						}
+
+						// all languages
+						foreach ($languages as $target) {
+							$code = $target?->code();
+							$alt = trim((string)$currentAltForLanguage($image, $code));
+							if ($alt === '') {
+								$images[] = $image;
+								if (count($images) >= $autoLimit) {
+									break 3;
+								}
+								break;
+							}
+						}
 					}
 				}
 
-				$generator = new AlterPanelGenerator([
-					'apiKey' => $apiKey,
-					'model' => option('medienbaecker.alter.api.model', option('medienbaecker.alter.model', 'claude-haiku-4-5')),
-					'prompt' => option('medienbaecker.alter.prompt'),
-				]);
+				if (empty($images)) {
+					return [
+						'success' => true,
+						'generated' => 0,
+						'images' => [],
+					];
+				}
+			} else {
+				foreach ($imageIds as $imageId) {
+					$image = kirby()->file($imageId);
+					if (!$image) {
+						throw new NotFoundException(t('medienbaecker.alter.imageNotFound'));
+					}
+
+					if ($image->permissions()->update() !== true) {
+						throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
+					}
+
+					$images[] = $image;
+				}
+			}
+
+			$generator = new AlterPanelGenerator([
+				'apiKey' => $apiKey,
+				'model' => option('medienbaecker.alter.api.model', option('medienbaecker.alter.model', 'claude-haiku-4-5')),
+				'prompt' => option('medienbaecker.alter.prompt'),
+			]);
 
 			try {
 				$result = $generator->generateForImages($images, $languages, $defaultLanguage);
