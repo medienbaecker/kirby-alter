@@ -243,7 +243,7 @@ class AlterPanelGenerator
 	private function translateAltText(string $text, $targetLanguage): string
 	{
 		$targetName = $targetLanguage ? $targetLanguage->name() : 'default language';
-		$prompt = 'Translate this alt text to ' . $targetName . '. Keep it concise and descriptive. Only return the translated alt text, nothing else: "' . $text . '"';
+		$prompt = 'Translate this alt text to ' . $targetName . '. Keep it concise and descriptive. Only return the translated alt text, nothing else: "' . addslashes($text) . '"';
 
 		$requestData = [
 			'model' => $this->model,
