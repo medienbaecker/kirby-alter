@@ -41,7 +41,7 @@
             </k-dropdown-content>
           </div>
 
-          <div v-if="languages.length > 1" class="k-view-button k-languages-dropdown k-languages-dropdown">
+          <div v-if="languages.length > 1" class="k-view-button k-languages-dropdown">
             <k-button :dropdown="true" icon="translate" variant="filled" size="sm" :responsive="'text'"
               :text="currentLanguage ? currentLanguage.toUpperCase() : ''" :aria-label="languageButtonLabel"
               :title="languageButtonLabel" :badge="hasAnyUnsavedLanguages ? { theme: 'orange' } : null"
