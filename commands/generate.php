@@ -61,7 +61,7 @@ class AltTextGenerator
 
 		$this->config = [
 			'prompt' => $prompt,
-			'model' => kirby()->option('medienbaecker.alter.api.model', kirby()->option('medienbaecker.alter.model', 'claude-haiku-4.5')),
+			'model' => kirby()->option('medienbaecker.alter.api.model', kirby()->option('medienbaecker.alter.model', 'claude-haiku-4-5')),
 			'overwrite' => $cli->arg('overwrite'),
 			'dryRun' => $cli->arg('dry-run'),
 			'verbose' => $cli->arg('verbose'),
