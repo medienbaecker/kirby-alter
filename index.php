@@ -2,7 +2,8 @@
 
 use Kirby\Cms\App as Kirby;
 
-require_once __DIR__ . '/lib/AlterPanelGenerator.php';
+require_once __DIR__ . '/classes/Alter/Generator.php';
+require_once __DIR__ . '/classes/Alter/PanelGenerator.php';
 
 Kirby::plugin('medienbaecker/alter', [
 	'options' => [
