@@ -1,0 +1,35 @@
+<?php
+
+return array(
+	'medienbaecker.alter.title'                    => 'Alt metinler',
+	'medienbaecker.alter.noImages'                 => 'Görsel bulunamadı',
+	'medienbaecker.alter.noAltText'                => 'Alt metin yok',
+	'medienbaecker.alter.save'                     => 'Kaydet',
+	'medienbaecker.alter.error'                    => 'Değişiklikler kaydedilemedi',
+	'medienbaecker.alter.unsaved'                  => 'Kaydedilmemiş değişiklikleriniz var. Yine de devam edilsin mi?',
+	'medienbaecker.alter.image'                    => 'görsel',
+	'medienbaecker.alter.images'                   => 'görseller',
+	'medienbaecker.alter.notAuthenticated'         => 'Kimlik doğrulanmadı',
+	'medienbaecker.alter.invalidField'             => 'Geçersiz alan',
+	'medienbaecker.alter.imageNotFound'            => 'Görsel bulunamadı',
+	'medienbaecker.alter.success'                  => 'Değişiklikler başarıyla kaydedildi',
+	'medienbaecker.alter.generate.all'             => 'Hepsini üret',
+	'medienbaecker.alter.generate.one'             => 'Alt metin üret',
+	'medienbaecker.alter.generate.label'           => 'Üret',
+	'medienbaecker.alter.generate.success.all'     => '{{ count }} alt metin üretildi',
+	'medienbaecker.alter.generate.success.one'     => 'Alt metin üretildi',
+	'medienbaecker.alter.generate.success.translated.one' => 'Alt metin çevrildi',
+	'medienbaecker.alter.generate.none'            => 'Alt metin üretilmedi',
+	'medienbaecker.alter.generate.failed'          => 'Alt metin üretilemedi',
+	'medienbaecker.alter.generate.disabled'        => 'Panel üretimi devre dışı',
+	'medienbaecker.alter.api.key.missing'          => 'Claude API anahtarı eksik',
+	'medienbaecker.alter.filter.label'             => 'Filtre',
+	'medienbaecker.alter.filter.all'               => 'Tüm görseller',
+	'medienbaecker.alter.filter.saved'             => 'Kaydedilen',
+	'medienbaecker.alter.filter.unsaved'           => 'Kaydedilmemiş',
+	'medienbaecker.alter.filter.missing'           => 'Eksik',
+	'medienbaecker.alter.parentDraft'              => 'Üst: Taslak',
+	'medienbaecker.alter.generate.scope.current'   => 'Geçerli dil',
+	'medienbaecker.alter.generate.scope.all'       => 'Tüm diller'
+);
+
