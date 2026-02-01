@@ -1,8 +1,7 @@
 <?php
 
-declare(strict_types=1);
-
 use Kirby\CLI\CLI;
+use Medienbaecker\Alter\Generator;
 
 return [
 	'description' => 'Generate alt texts for images using Claude API',
@@ -10,7 +9,7 @@ return [
 		'prompt' => [
 			'prefix' => 'p',
 			'longPrefix' => 'prompt',
-			'description' => 'Custom prompt for generating alt texts',
+			'description' => 'Custom prompt for alt text generation',
 		],
 		'overwrite' => [
 			'longPrefix' => 'overwrite',
@@ -42,10 +41,10 @@ return [
 	}
 ];
 
-class AltTextGenerator
+class AltTextGenerator extends Generator
 {
 	private CLI $cli;
-	private array $config;
+	private array $cliConfig;
 	private array $altTextCache = [];
 	private int $apiCallCount = 0;
 	private int $processed = 0;
@@ -59,15 +58,57 @@ class AltTextGenerator
 		// Use CLI prompt if provided, otherwise use config option
 		$prompt = $cli->arg('prompt') ?: kirby()->option('medienbaecker.alter.prompt');
 
-		$this->config = [
+		parent::__construct([
 			'prompt' => $prompt,
 			'model' => kirby()->option('medienbaecker.alter.api.model', kirby()->option('medienbaecker.alter.model', 'claude-haiku-4-5')),
+			'apiKey' => kirby()->option('medienbaecker.alter.api.key', kirby()->option('medienbaecker.alter.apiKey')),
+			'maxLength' => kirby()->option('medienbaecker.alter.maxLength', false),
+		]);
+
+		$this->cliConfig = [
 			'overwrite' => $cli->arg('overwrite'),
 			'dryRun' => $cli->arg('dry-run'),
 			'verbose' => $cli->arg('verbose'),
-			'apiKey' => kirby()->option('medienbaecker.alter.api.key', kirby()->option('medienbaecker.alter.apiKey')),
 			'pageFilter' => $cli->arg('page'),
 		];
+	}
+
+	protected function onApiCall(): void
+	{
+		$this->apiCallCount++;
+		usleep(500000);
+	}
+
+	/**
+	 * CLI uses ->content()->toArray() with fallback logic
+	 * instead of the base's ->read().
+	 */
+	protected function contentArrayForVersion($image, string $versionId, ?string $languageCode): array
+	{
+		$version = $image->version($versionId);
+
+		try {
+			return $this->versionContent($version, $languageCode)->toArray();
+		} catch (\Throwable $e) {
+			// try default language (multilang), otherwise null
+			$fallbackLanguage = kirby()->multilang() && kirby()->defaultLanguage()
+				? kirby()->defaultLanguage()->code()
+				: null;
+
+			if ($fallbackLanguage !== null && $fallbackLanguage !== $languageCode) {
+				try {
+					return $version->content($fallbackLanguage)->toArray();
+				} catch (\Throwable $e2) {
+					// ignore
+				}
+			}
+
+			try {
+				return $this->versionContent($version, null)->toArray();
+			} catch (\Throwable $e3) {
+				return [];
+			}
+		}
 	}
 
 	public function run(): void
@@ -89,14 +130,14 @@ class AltTextGenerator
 
 	private function validateConfig(): void
 	{
-		if (!$this->config['apiKey']) {
+		if (!$this->apiKey) {
 			throw new \Exception('Claude API key is required');
 		}
 	}
 
 	private function showRunMode(): void
 	{
-		if ($this->config['dryRun']) {
+		if ($this->cliConfig['dryRun']) {
 			$this->cli->bold()->blue()->out('DRY RUN MODE - no changes will be written');
 		} else {
 			$this->cli->bold()->yellow()->out('Generated alt texts will be stored as unsaved changes');
@@ -248,10 +289,10 @@ class AltTextGenerator
 
 	private function getPages()
 	{
-		if ($this->config['pageFilter']) {
-			$startPage = page($this->config['pageFilter']);
+		if ($this->cliConfig['pageFilter']) {
+			$startPage = page($this->cliConfig['pageFilter']);
 			if (!$startPage) {
-				throw new \Exception('Page not found: ' . $this->config['pageFilter']);
+				throw new \Exception('Page not found: ' . $this->cliConfig['pageFilter']);
 			}
 			$this->cli->info('Processing from page: ' . $startPage->title() . ' (' . $startPage->id() . ')');
 			return $startPage->index(true)->prepend($startPage);
@@ -265,50 +306,11 @@ class AltTextGenerator
 		return md5_file($image->root());
 	}
 
-	private function versionExists($version, ?string $languageCode): bool
-	{
-		return $languageCode === null
-			? $version->exists()
-			: $version->exists($languageCode);
-	}
-
 	private function versionContent($version, ?string $languageCode)
 	{
 		return $languageCode === null
 			? $version->content()
 			: $version->content($languageCode);
-	}
-
-	/**
-	 * Reads a version's content array safely. If the language doesn't exist yet,
-	 * fall back to default language content (or empty array).
-	 */
-	private function contentArrayForVersion($image, string $versionId, ?string $languageCode): array
-	{
-		$version = $image->version($versionId);
-
-		try {
-			return $this->versionContent($version, $languageCode)->toArray();
-		} catch (\Throwable $e) {
-			// try default language (multilang), otherwise null
-			$fallbackLanguage = kirby()->multilang() && kirby()->defaultLanguage()
-				? kirby()->defaultLanguage()->code()
-				: null;
-
-			if ($fallbackLanguage !== null && $fallbackLanguage !== $languageCode) {
-				try {
-					return $version->content($fallbackLanguage)->toArray();
-				} catch (\Throwable $e2) {
-					// ignore
-				}
-			}
-
-			try {
-				return $this->versionContent($version, null)->toArray();
-			} catch (\Throwable $e3) {
-				return [];
-			}
-		}
 	}
 
 	private function latestAlt($image, ?string $languageCode): string
@@ -366,7 +368,7 @@ class AltTextGenerator
 
 	private function imageNeedsProcessing($image, array $languages): bool
 	{
-		if ($this->config['overwrite']) {
+		if ($this->cliConfig['overwrite']) {
 			return true;
 		}
 
@@ -426,14 +428,14 @@ class AltTextGenerator
 							$image = $instanceData['image'];
 							$page = $instanceData['page'];
 
-							$needsUpdate = $this->config['overwrite'] || $this->shouldAutofillAlt($image, $languageCode);
+							$needsUpdate = $this->cliConfig['overwrite'] || $this->shouldAutofillAlt($image, $languageCode);
 
 							if ($needsUpdate) {
 								$updatedImage = $this->updateImageAltText($image, $altText, $languageCode);
 								if ($updatedImage) {
 									$imagesByHash[$hash]['instances'][$key]['image'] = $updatedImage;
 								}
-								$action = $this->config['dryRun'] ? 'Would store changes for' : 'Stored changes for';
+								$action = $this->cliConfig['dryRun'] ? 'Would store changes for' : 'Stored changes for';
 								$this->cli->green()->out('    ' . $action . ' ' . $image->filename() . ' (' . $page->id() . ')');
 								$processedFiles++;
 							} else {
@@ -491,7 +493,7 @@ class AltTextGenerator
 		}
 
 		// If existing alt text is found and not overwriting, use it
-		if ($existingAltText && !$this->config['overwrite']) {
+		if ($existingAltText && !$this->cliConfig['overwrite']) {
 			$result = ['text' => $existingAltText, 'source' => 'copied from existing'];
 			$this->altTextCache[$cacheKey] = $result;
 			return $result;
@@ -500,7 +502,7 @@ class AltTextGenerator
 		// Only generate if at least one instance should be autofilled
 		$needsProcessing = false;
 		foreach ($instances as $instanceData) {
-			if ($this->config['overwrite'] || $this->shouldAutofillAlt($instanceData['image'], $languageCode)) {
+			if ($this->cliConfig['overwrite'] || $this->shouldAutofillAlt($instanceData['image'], $languageCode)) {
 				$needsProcessing = true;
 				break;
 			}
@@ -512,22 +514,28 @@ class AltTextGenerator
 
 		// Generate or translate new alt text
 		if ($language && !$language->isDefault()) {
-			$altText = $this->translateAltText($image, $hash, $language, $instances);
+			$altText = $this->translateForLanguage($image, $hash, $language, $instances);
 			$result = ['text' => $altText, 'source' => 'translated from ' . kirby()->defaultLanguage()->name()];
 		} else {
 			// Default language path: if another language already has alt, prefer translating it
 			$existingOtherAlt = $this->findAltInOtherLanguages($instances, $allLanguages, $language);
 			if ($existingOtherAlt) {
-				$altText = $this->translateAltTextFromExisting($existingOtherAlt, $language);
+				$altText = $this->translateAltText($existingOtherAlt, $language);
 				$result = ['text' => $altText, 'source' => 'translated from existing alt'];
 			} else {
-				$altText = $this->generateAltText($image, $language);
+				$altText = $this->generateFromImage($image, $language);
 				$result = ['text' => $altText, 'source' => 'generated from image'];
 			}
 		}
 
 		$this->altTextCache[$cacheKey] = $result;
 		return $result;
+	}
+
+	private function generateFromImage($image, $language = null): string
+	{
+		$imagePayload = $this->encodeImage($image);
+		return $this->generateAltText($imagePayload, $image, $language);
 	}
 
 	private function findAltInOtherLanguages(array $instances, array $languages, $targetLanguage): ?string
@@ -558,7 +566,7 @@ class AltTextGenerator
 		return null;
 	}
 
-	private function translateAltText($image, string $hash, $language, array $instances): string
+	private function translateForLanguage($image, string $hash, $language, array $instances): string
 	{
 		$defaultCacheKey = $hash . '_default';
 		$defaultAltText = $this->altTextCache[$defaultCacheKey] ?? null;
@@ -577,7 +585,7 @@ class AltTextGenerator
 
 			// If still no default alt text found, generate it
 			if (!$defaultAltText) {
-				$defaultAltText = $this->generateAltText($image, kirby()->defaultLanguage());
+				$defaultAltText = $this->generateFromImage($image, kirby()->defaultLanguage());
 				$this->altTextCache[$defaultCacheKey] = $defaultAltText;
 
 				// Store the default language as draft (alt-only smart write)
@@ -585,141 +593,7 @@ class AltTextGenerator
 			}
 		}
 
-		$prompt = 'Translate this alt text to ' . $language->name() . '. Keep it concise and descriptive. Only return the translated alt text, nothing else: "' . $defaultAltText . '"';
-
-		return $this->callClaudeApi($prompt);
-	}
-
-	private function generateAltText($image, $language = null): string
-	{
-		if (!file_exists($image->root())) {
-			throw new \Exception('Image file not found: ' . $image->root());
-		}
-
-		$resized = $image->thumb([
-			'width' => 500,
-			'height' => 500,
-			'format' => false, // Keep original format
-		]);
-		$resized->publish();
-		$imageContent = $resized->read();
-
-		if (!$imageContent) {
-			throw new \Exception('Failed to read image content');
-		}
-
-		$imageData = base64_encode($imageContent);
-		$mimeType = $image->mime();
-
-		// Get prompt - handle callback if provided
-		$prompt = $this->config['prompt'];
-
-		// If prompt is callable, invoke it with the image
-		if (is_callable($prompt)) {
-			$prompt = $prompt($image);
-		}
-
-		// Add language specification to prompt
-		if ($language) {
-			$prompt .= ' Write the alt text in ' . $language->name() . '.';
-		}
-
-		return $this->callClaudeApiWithImage($imageData, $mimeType, $prompt);
-	}
-
-	private function translateAltTextFromExisting(string $text, $targetLanguage): string
-	{
-		$targetName = $targetLanguage ? $targetLanguage->name() : (kirby()->multilang() ? kirby()->defaultLanguage()->name() : 'default language');
-		$prompt = 'Translate this alt text to ' . $targetName . '. Keep it concise and descriptive. Only return the translated alt text, nothing else: "' . $text . '"';
-
-		return $this->callClaudeApi($prompt);
-	}
-
-	private function callClaudeApi(string $prompt): string
-	{
-		$requestData = [
-			'model' => $this->config['model'],
-			'max_tokens' => 500,
-			'messages' => [
-				[
-					'role' => 'user',
-					'content' => $prompt
-				]
-			]
-		];
-
-		return $this->makeApiRequest($requestData);
-	}
-
-	private function callClaudeApiWithImage(string $imageData, string $mimeType, string $prompt): string
-	{
-		$requestData = [
-			'model' => $this->config['model'],
-			'max_tokens' => 500,
-			'messages' => [
-				[
-					'role' => 'user',
-					'content' => [
-						[
-							'type' => 'image',
-							'source' => [
-								'type' => 'base64',
-								'media_type' => $mimeType,
-								'data' => $imageData
-							]
-						],
-						[
-							'type' => 'text',
-							'text' => $prompt
-						]
-					]
-				]
-			]
-		];
-
-		return $this->makeApiRequest($requestData);
-	}
-
-	private function makeApiRequest(array $requestData): string
-	{
-		$this->apiCallCount++;
-
-		$ch = curl_init('https://api.anthropic.com/v1/messages');
-		curl_setopt_array($ch, [
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_POST => true,
-			CURLOPT_POSTFIELDS => json_encode($requestData),
-			CURLOPT_HTTPHEADER => [
-				'Content-Type: application/json',
-				'x-api-key: ' . $this->config['apiKey'],
-				'anthropic-version: 2023-06-01'
-			],
-			CURLOPT_TIMEOUT => 30,
-		]);
-
-		$response = curl_exec($ch);
-		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$curlError = curl_error($ch);
-		unset($ch); // CurlHandle auto-closes when unset in PHP 8.0+
-
-		if ($curlError) {
-			throw new \Exception('cURL error: ' . $curlError);
-		}
-
-		if ($httpCode !== 200) {
-			$error = json_decode($response, true);
-			throw new \Exception('Claude API error (HTTP ' . $httpCode . '): ' . ($error['error']['message'] ?? 'Unknown error'));
-		}
-
-		$result = json_decode($response, true);
-
-		if (!isset($result['content'][0]['text'])) {
-			throw new \Exception('Unexpected API response format');
-		}
-
-		usleep(500000);
-
-		return trim($result['content'][0]['text'], '"\'');
+		return $this->translateAltText($defaultAltText, $language);
 	}
 
 	/**
@@ -730,7 +604,7 @@ class AltTextGenerator
 	 */
 	private function updateImageAltText($image, string $altText, ?string $languageCode)
 	{
-		if ($this->config['dryRun']) {
+		if ($this->cliConfig['dryRun']) {
 			return $image;
 		}
 
@@ -738,7 +612,7 @@ class AltTextGenerator
 			$changes = $image->version('changes');
 
 			// If draft alt was modified and overwrite is false, do not modify it
-			if ($this->config['overwrite'] !== true) {
+			if ($this->cliConfig['overwrite'] !== true) {
 				$latestAlt = $this->latestAlt($image, $languageCode);
 				$draft = $this->draftAltInfo($image, $languageCode);
 
@@ -793,7 +667,7 @@ class AltTextGenerator
 		$imageText = $this->uniqueImagesProcessed === 1 ? 'image' : 'images';
 		$fileText = $this->processed === 1 ? 'file' : 'files';
 
-		if ($this->config['dryRun']) {
+		if ($this->cliConfig['dryRun']) {
 			$this->cli->bold()->blue()->out('Dry run complete: ' . $this->uniqueImagesProcessed . ' ' . $imageText . ' (' . $this->processed . ' ' . $fileText . ') would be stored as changes');
 		} else {
 			$this->cli->bold()->green()->out('Successfully processed ' . $this->uniqueImagesProcessed . ' ' . $imageText . ' (' . $this->processed . ' ' . $fileText . ' stored as changes)');
@@ -803,7 +677,7 @@ class AltTextGenerator
 			$this->cli->bold()->red()->out($this->errors . ' file updates failed');
 		}
 
-		if ($this->config['verbose']) {
+		if ($this->cliConfig['verbose']) {
 			$this->cli->dim()->out('Total API calls made: ' . $this->apiCallCount);
 		}
 	}
