@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Nessun testo alternativo',
 	'medienbaecker.alter.parentDraft'              => 'Genitore: Bozza',
 	'medienbaecker.alter.generate.scope.current'   => 'Lingua corrente',
-	'medienbaecker.alter.generate.scope.all'       => 'Tutte le lingue'
+	'medienbaecker.alter.generate.scope.all'       => 'Tutte le lingue',
+	'medienbaecker.alter.generate.stop'            => 'Ferma'
 );
 

@@ -26,5 +26,6 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Kein Alt-Text',
 	'medienbaecker.alter.parentDraft'              => 'Elternseite: Entwurf',
 	'medienbaecker.alter.generate.scope.current'   => 'Aktuelle Sprache',
-	'medienbaecker.alter.generate.scope.all'       => 'Alle Sprachen'
+	'medienbaecker.alter.generate.scope.all'       => 'Alle Sprachen',
+	'medienbaecker.alter.generate.stop'            => 'Stoppen'
 );

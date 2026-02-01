@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Fără text alternativ',
 	'medienbaecker.alter.parentDraft'              => 'Părinte: Schiță',
 	'medienbaecker.alter.generate.scope.current'   => 'Limba curentă',
-	'medienbaecker.alter.generate.scope.all'       => 'Toate limbile'
+	'medienbaecker.alter.generate.scope.all'       => 'Toate limbile',
+	'medienbaecker.alter.generate.stop'            => 'Oprește'
 );
 

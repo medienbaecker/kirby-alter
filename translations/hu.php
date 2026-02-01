@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Nincs alt szöveg',
 	'medienbaecker.alter.parentDraft'              => 'Szülő: Vázlat',
 	'medienbaecker.alter.generate.scope.current'   => 'Aktuális nyelv',
-	'medienbaecker.alter.generate.scope.all'       => 'Minden nyelv'
+	'medienbaecker.alter.generate.scope.all'       => 'Minden nyelv',
+	'medienbaecker.alter.generate.stop'            => 'Leállítás'
 );
 

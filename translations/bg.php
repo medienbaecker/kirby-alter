@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Без алт текст',
 	'medienbaecker.alter.parentDraft'              => 'Родител: Чернова',
 	'medienbaecker.alter.generate.scope.current'   => 'Текущ език',
-	'medienbaecker.alter.generate.scope.all'       => 'Всички езици'
+	'medienbaecker.alter.generate.scope.all'       => 'Всички езици',
+	'medienbaecker.alter.generate.stop'            => 'Спри'
 );
 

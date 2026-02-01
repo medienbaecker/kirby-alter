@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Sem texto alternativo',
 	'medienbaecker.alter.parentDraft'              => 'Pai: Rascunho',
 	'medienbaecker.alter.generate.scope.current'   => 'Idioma atual',
-	'medienbaecker.alter.generate.scope.all'       => 'Todos os idiomas'
+	'medienbaecker.alter.generate.scope.all'       => 'Todos os idiomas',
+	'medienbaecker.alter.generate.stop'            => 'Parar'
 );
 

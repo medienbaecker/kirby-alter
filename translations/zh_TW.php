@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => '無替代文字',
 	'medienbaecker.alter.parentDraft'              => '上層：草稿',
 	'medienbaecker.alter.generate.scope.current'   => '目前語言',
-	'medienbaecker.alter.generate.scope.all'       => '所有語言'
+	'medienbaecker.alter.generate.scope.all'       => '所有語言',
+	'medienbaecker.alter.generate.stop'            => '停止'
 );
 

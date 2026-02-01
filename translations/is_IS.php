@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Enginn alt-texti',
 	'medienbaecker.alter.parentDraft'              => 'Foreldri: Drög',
 	'medienbaecker.alter.generate.scope.current'   => 'Núverandi tungumál',
-	'medienbaecker.alter.generate.scope.all'       => 'Öll tungumál'
+	'medienbaecker.alter.generate.scope.all'       => 'Öll tungumál',
+	'medienbaecker.alter.generate.stop'            => 'Stöðva'
 );
 

@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Sin texto alternativo',
 	'medienbaecker.alter.parentDraft'              => 'Padre: Borrador',
 	'medienbaecker.alter.generate.scope.current'   => 'Idioma actual',
-	'medienbaecker.alter.generate.scope.all'       => 'Todos los idiomas'
+	'medienbaecker.alter.generate.scope.all'       => 'Todos los idiomas',
+	'medienbaecker.alter.generate.stop'            => 'Detener'
 );
 

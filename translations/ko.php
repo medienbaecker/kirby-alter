@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Alt 텍스트 없음',
 	'medienbaecker.alter.parentDraft'              => '상위: 초안',
 	'medienbaecker.alter.generate.scope.current'   => '현재 언어',
-	'medienbaecker.alter.generate.scope.all'       => '모든 언어'
+	'medienbaecker.alter.generate.scope.all'       => '모든 언어',
+	'medienbaecker.alter.generate.stop'            => '중지'
 );
 

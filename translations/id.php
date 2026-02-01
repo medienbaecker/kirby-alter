@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Tanpa teks alternatif',
 	'medienbaecker.alter.parentDraft'              => 'Induk: Draf',
 	'medienbaecker.alter.generate.scope.current'   => 'Bahasa saat ini',
-	'medienbaecker.alter.generate.scope.all'       => 'Semua bahasa'
+	'medienbaecker.alter.generate.scope.all'       => 'Semua bahasa',
+	'medienbaecker.alter.generate.stop'            => 'Hentikan'
 );
 

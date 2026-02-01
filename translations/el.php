@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Χωρίς alt text',
 	'medienbaecker.alter.parentDraft'              => 'Γονικό: Πρόχειρο',
 	'medienbaecker.alter.generate.scope.current'   => 'Τρέχουσα γλώσσα',
-	'medienbaecker.alter.generate.scope.all'       => 'Όλες οι γλώσσες'
+	'medienbaecker.alter.generate.scope.all'       => 'Όλες οι γλώσσες',
+	'medienbaecker.alter.generate.stop'            => 'Διακοπή'
 );
 

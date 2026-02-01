@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Alt metin yok',
 	'medienbaecker.alter.parentDraft'              => 'Üst: Taslak',
 	'medienbaecker.alter.generate.scope.current'   => 'Geçerli dil',
-	'medienbaecker.alter.generate.scope.all'       => 'Tüm diller'
+	'medienbaecker.alter.generate.scope.all'       => 'Tüm diller',
+	'medienbaecker.alter.generate.stop'            => 'Durdur'
 );
 

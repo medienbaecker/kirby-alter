@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Nėra alt teksto',
 	'medienbaecker.alter.parentDraft'              => 'Tėvinis: Juodraštis',
 	'medienbaecker.alter.generate.scope.current'   => 'Dabartinė kalba',
-	'medienbaecker.alter.generate.scope.all'       => 'Visos kalbos'
+	'medienbaecker.alter.generate.scope.all'       => 'Visos kalbos',
+	'medienbaecker.alter.generate.stop'            => 'Sustabdyti'
 );
 

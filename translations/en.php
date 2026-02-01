@@ -26,5 +26,6 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'No alt text',
 	'medienbaecker.alter.parentDraft'              => 'Parent: Draft',
 	'medienbaecker.alter.generate.scope.current'   => 'Current language',
-	'medienbaecker.alter.generate.scope.all'       => 'All languages'
+	'medienbaecker.alter.generate.scope.all'       => 'All languages',
+	'medienbaecker.alter.generate.stop'            => 'Stop'
 );

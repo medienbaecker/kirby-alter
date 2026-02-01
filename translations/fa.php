@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'بدون متن جایگزین',
 	'medienbaecker.alter.parentDraft'              => 'والد: پیش‌نویس',
 	'medienbaecker.alter.generate.scope.current'   => 'زبان فعلی',
-	'medienbaecker.alter.generate.scope.all'       => 'همه زبان‌ها'
+	'medienbaecker.alter.generate.scope.all'       => 'همه زبان‌ها',
+	'medienbaecker.alter.generate.stop'            => 'توقف'
 );
 

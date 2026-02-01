@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Brak tekstu alternatywnego',
 	'medienbaecker.alter.parentDraft'              => 'Nadrzędne: Szkic',
 	'medienbaecker.alter.generate.scope.current'   => 'Bieżący język',
-	'medienbaecker.alter.generate.scope.all'       => 'Wszystkie języki'
+	'medienbaecker.alter.generate.scope.all'       => 'Wszystkie języki',
+	'medienbaecker.alter.generate.stop'            => 'Zatrzymaj'
 );
 

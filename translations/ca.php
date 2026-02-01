@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Sense text alternatiu',
 	'medienbaecker.alter.parentDraft'              => 'Pare: Esborrany',
 	'medienbaecker.alter.generate.scope.current'   => 'Idioma actual',
-	'medienbaecker.alter.generate.scope.all'       => 'Tots els idiomes'
+	'medienbaecker.alter.generate.scope.all'       => 'Tots els idiomes',
+	'medienbaecker.alter.generate.stop'            => 'Atura'
 );
 

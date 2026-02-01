@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Ingen alt-tekst',
 	'medienbaecker.alter.parentDraft'              => 'Forælder: Kladde',
 	'medienbaecker.alter.generate.scope.current'   => 'Aktuelt sprog',
-	'medienbaecker.alter.generate.scope.all'       => 'Alle sprog'
+	'medienbaecker.alter.generate.scope.all'       => 'Alle sprog',
+	'medienbaecker.alter.generate.stop'            => 'Stop'
 );
 

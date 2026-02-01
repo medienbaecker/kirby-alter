@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Sen alt-teksto',
 	'medienbaecker.alter.parentDraft'              => 'Gepatra: Malneta',
 	'medienbaecker.alter.generate.scope.current'   => 'Aktuala lingvo',
-	'medienbaecker.alter.generate.scope.all'       => 'Ĉiuj lingvoj'
+	'medienbaecker.alter.generate.scope.all'       => 'Ĉiuj lingvoj',
+	'medienbaecker.alter.generate.stop'            => 'Halti'
 );
 

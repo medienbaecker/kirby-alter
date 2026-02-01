@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Ei alt-tekstiä',
 	'medienbaecker.alter.parentDraft'              => 'Yläsivu: Luonnos',
 	'medienbaecker.alter.generate.scope.current'   => 'Nykyinen kieli',
-	'medienbaecker.alter.generate.scope.all'       => 'Kaikki kielet'
+	'medienbaecker.alter.generate.scope.all'       => 'Kaikki kielet',
+	'medienbaecker.alter.generate.stop'            => 'Pysäytä'
 );
 

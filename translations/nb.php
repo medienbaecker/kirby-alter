@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Ingen alt-tekst',
 	'medienbaecker.alter.parentDraft'              => 'Overordnet: Utkast',
 	'medienbaecker.alter.generate.scope.current'   => 'Gjeldende språk',
-	'medienbaecker.alter.generate.scope.all'       => 'Alle språk'
+	'medienbaecker.alter.generate.scope.all'       => 'Alle språk',
+	'medienbaecker.alter.generate.stop'            => 'Stopp'
 );
 

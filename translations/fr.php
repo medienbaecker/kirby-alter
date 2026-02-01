@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Pas de texte alternatif',
 	'medienbaecker.alter.parentDraft'              => 'Parent : Brouillon',
 	'medienbaecker.alter.generate.scope.current'   => 'Langue actuelle',
-	'medienbaecker.alter.generate.scope.all'       => 'Toutes les langues'
+	'medienbaecker.alter.generate.scope.all'       => 'Toutes les langues',
+	'medienbaecker.alter.generate.stop'            => 'Arrêter'
 );
 

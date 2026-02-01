@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Žádný alt text',
 	'medienbaecker.alter.parentDraft'              => 'Nadřazené: Koncept',
 	'medienbaecker.alter.generate.scope.current'   => 'Aktuální jazyk',
-	'medienbaecker.alter.generate.scope.all'       => 'Všechny jazyky'
+	'medienbaecker.alter.generate.scope.all'       => 'Všechny jazyky',
+	'medienbaecker.alter.generate.stop'            => 'Zastavit'
 );
 

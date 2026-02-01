@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Нет alt-текста',
 	'medienbaecker.alter.parentDraft'              => 'Родитель: Черновик',
 	'medienbaecker.alter.generate.scope.current'   => 'Текущий язык',
-	'medienbaecker.alter.generate.scope.all'       => 'Все языки'
+	'medienbaecker.alter.generate.scope.all'       => 'Все языки',
+	'medienbaecker.alter.generate.stop'            => 'Остановить'
 );
 

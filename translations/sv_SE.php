@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Ingen alt-text',
 	'medienbaecker.alter.parentDraft'              => 'Förälder: Utkast',
 	'medienbaecker.alter.generate.scope.current'   => 'Aktuellt språk',
-	'medienbaecker.alter.generate.scope.all'       => 'Alla språk'
+	'medienbaecker.alter.generate.scope.all'       => 'Alla språk',
+	'medienbaecker.alter.generate.stop'            => 'Stoppa'
 );
 

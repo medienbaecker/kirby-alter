@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Nema alt teksta',
 	'medienbaecker.alter.parentDraft'              => 'Roditelj: Nacrt',
 	'medienbaecker.alter.generate.scope.current'   => 'Trenutni jezik',
-	'medienbaecker.alter.generate.scope.all'       => 'Svi jezici'
+	'medienbaecker.alter.generate.scope.all'       => 'Svi jezici',
+	'medienbaecker.alter.generate.stop'            => 'Zaustavi'
 );
 

@@ -26,6 +26,7 @@ return array(
 	'medienbaecker.alter.filter.missing'           => 'Geen alt-tekst',
 	'medienbaecker.alter.parentDraft'              => 'Bovenliggend: Concept',
 	'medienbaecker.alter.generate.scope.current'   => 'Huidige taal',
-	'medienbaecker.alter.generate.scope.all'       => 'Alle talen'
+	'medienbaecker.alter.generate.scope.all'       => 'Alle talen',
+	'medienbaecker.alter.generate.stop'            => 'Stoppen'
 );
 
