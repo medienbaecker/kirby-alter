@@ -31,4 +31,3 @@ Kirby::plugin('medienbaecker/alter', [
 		'alter:generate' => require_once __DIR__ . '/commands/generate.php',
 	],
 ]);
-
