@@ -30,7 +30,7 @@
 
           <div v-if="panelGenerationEnabled" class="k-view-button">
             <k-button :dropdown="languages.length > 1" :icon="generatingAll ? 'loader' : 'ai'" variant="filled"
-              :theme="generationButtonTheme" size="sm" :responsive="'text'" :text="generationDropdownLabel"
+              theme="orange-icon" size="sm" :responsive="'text'" :text="generationDropdownLabel"
               :title="generationDropdownLabel" :disabled="generationButtonDisabled"
               @click="languages.length > 1 ? toggleDropdown('scopeDropdown') : onGenerateAll('current')" />
             <k-dropdown-content ref="scopeDropdown" align-x="end">
@@ -222,10 +222,7 @@ export default {
       filterMode: null,
       generationScope: 'current',
       generatingAll: false,
-      generationButtonFeedback: null,
-      generationButtonFeedbackResetTimerId: null,
-
-      // “active textarea” tracking for Cmd+S (save current item)
+      // "active textarea" tracking for Cmd+S (save current item)
       activeImageId: null,
       lastCmdSHandledAt: 0,
     };
@@ -345,11 +342,6 @@ export default {
       if (this.generatingAll) return true;
       return this.generationScopes.every((scope) => scope.disabled === true);
     },
-    generationButtonTheme() {
-      if (this.generationButtonFeedback === 'success') return 'positive';
-      if (this.generationButtonFeedback === 'error') return 'negative';
-      return 'orange-icon';
-    },
     generationDropdownLabel() {
       return this.$t('medienbaecker.alter.generate.label');
     },
@@ -464,7 +456,6 @@ export default {
 
   beforeDestroy() {
     window.panel.events.off('keydown.cmd.s', this.onCmdS);
-    this.clearGenerationButtonFeedback();
   },
 
   methods: {
@@ -744,25 +735,6 @@ export default {
       this.generationScope = allowed.includes(scope) ? scope : 'current';
     },
 
-    clearGenerationButtonFeedback() {
-      if (this.generationButtonFeedbackResetTimerId !== null) {
-        clearTimeout(this.generationButtonFeedbackResetTimerId);
-        this.generationButtonFeedbackResetTimerId = null;
-      }
-      this.generationButtonFeedback = null;
-    },
-
-    scheduleGenerationButtonFeedbackReset(delay = 1200) {
-      if (this.generationButtonFeedbackResetTimerId !== null) {
-        clearTimeout(this.generationButtonFeedbackResetTimerId);
-      }
-
-      this.generationButtonFeedbackResetTimerId = window.setTimeout(() => {
-        this.generationButtonFeedback = null;
-        this.generationButtonFeedbackResetTimerId = null;
-      }, delay);
-    },
-
     async onGenerateAll(scope = this.generationScope) {
       this.setGenerationScope(scope);
       if (this.canGenerateForScope(scope) !== true) return;
@@ -772,44 +744,63 @@ export default {
     async generateForAll(scope = this.generationScope) {
       if (!this.panelGenerationEnabled) return;
 
-      this.clearGenerationButtonFeedback();
-
       await this.flushAltDraftSaves();
 
       const imageIds = [...new Set(this.images.map((image) => image.id))];
 
+      // autoSelect: server picks images, keep as single request
+      if (imageIds.length === 0 && this.filterMode === 'missing') {
+        this.generatingAll = true;
+        try {
+          const response = await this.$api.post('alter/generate', {
+            imageIds: [],
+            languageMode: scope,
+            autoSelect: true,
+          });
+          if (response?.error) throw new Error(response.error);
+          const generated = Number(response?.generated ?? 0);
+          this.applyGenerationResponse(response);
+          this.$panel.notification.success(
+            generated > 0
+              ? this.$t('medienbaecker.alter.generate.success.all', { count: generated })
+              : this.$t('medienbaecker.alter.generate.none')
+          );
+        } catch (error) {
+          this.$panel.notification.error(
+            error?.message || this.$t('medienbaecker.alter.generate.failed')
+          );
+          console.error(error);
+        } finally {
+          this.generatingAll = false;
+        }
+        return;
+      }
+
       this.generatingAll = true;
+      let totalGenerated = 0;
 
       try {
-        const response = await this.$api.post('alter/generate', {
-          imageIds,
-          languageMode: scope,
-          ...(imageIds.length === 0 && this.filterMode === 'missing'
-            ? { autoSelect: true }
-            : {}),
-        });
-
-        if (response?.error) {
-          throw new Error(response.error);
+        for (const imageId of imageIds) {
+          this.$set(this.generating, imageId, true);
+          try {
+            const response = await this.$api.post('alter/generate', {
+              imageIds: [imageId],
+              languageMode: scope,
+            });
+            if (response?.error) throw new Error(response.error);
+            totalGenerated += Number(response?.generated ?? 0);
+            this.applyGenerationResponse(response);
+          } finally {
+            this.$set(this.generating, imageId, false);
+          }
         }
 
-        const generated = Number(response?.generated ?? 0);
-        const message =
-          generated > 0
-            ? this.$t('medienbaecker.alter.generate.success.all', {
-              count: generated,
-            })
-            : this.$t('medienbaecker.alter.generate.none');
-
-        this.applyGenerationResponse(response);
-        this.$panel.notification.success(message);
-        if (generated > 0) {
-          this.generationButtonFeedback = 'success';
-          this.scheduleGenerationButtonFeedbackReset();
-        }
+        this.$panel.notification.success(
+          totalGenerated > 0
+            ? this.$t('medienbaecker.alter.generate.success.all', { count: totalGenerated })
+            : this.$t('medienbaecker.alter.generate.none')
+        );
       } catch (error) {
-        this.generationButtonFeedback = 'error';
-        this.scheduleGenerationButtonFeedbackReset();
         this.$panel.notification.error(
           error?.message || this.$t('medienbaecker.alter.generate.failed')
         );
