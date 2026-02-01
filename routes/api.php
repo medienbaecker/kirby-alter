@@ -2,6 +2,7 @@
 
 use Kirby\Exception\NotFoundException;
 use Kirby\Exception\PermissionException;
+use Medienbaecker\Alter\Generator;
 use Medienbaecker\Alter\PanelGenerator;
 
 $versionExists = static function ($version, ?string $code): bool {
@@ -378,49 +379,43 @@ return [
 					return (string)($changesContent['alt'] ?? '');
 				};
 
-				$pages = site()->index(true);
+				foreach (Generator::allImages() as $entry) {
+					$image = $entry['image'];
 
-				foreach ($pages as $sitePage) {
-					if ($sitePage->hasImages() !== true) {
+					if ($allowedTemplates !== null) {
+						$imageTemplate = $image->template();
+						if (!in_array($imageTemplate, $allowedTemplates, true)) {
+							continue;
+						}
+					}
+
+					if ($image->permissions()->update() !== true) {
 						continue;
 					}
 
-					foreach ($sitePage->images() as $image) {
-						if ($allowedTemplates !== null) {
-							$imageTemplate = $image->template();
-							if (!in_array($imageTemplate, $allowedTemplates, true)) {
-								continue;
-							}
-						}
-
-						if ($image->permissions()->update() !== true) {
-							continue;
-						}
-
-						if ($languageMode === 'current') {
-							$target = $languages[0] ?? null;
-							$code = $target?->code();
-							$alt = trim((string)$currentAltForLanguage($image, $code));
-							if ($alt === '') {
-								$images[] = $image;
-								if (count($images) >= $autoLimit) {
-									break 2;
-								}
-							}
-							continue;
-						}
-
-						// all languages
-						foreach ($languages as $target) {
-							$code = $target?->code();
-							$alt = trim((string)$currentAltForLanguage($image, $code));
-							if ($alt === '') {
-								$images[] = $image;
-								if (count($images) >= $autoLimit) {
-									break 3;
-								}
+					if ($languageMode === 'current') {
+						$target = $languages[0] ?? null;
+						$code = $target?->code();
+						$alt = trim((string)$currentAltForLanguage($image, $code));
+						if ($alt === '') {
+							$images[] = $image;
+							if (count($images) >= $autoLimit) {
 								break;
 							}
+						}
+						continue;
+					}
+
+					// all languages
+					foreach ($languages as $target) {
+						$code = $target?->code();
+						$alt = trim((string)$currentAltForLanguage($image, $code));
+						if ($alt === '') {
+							$images[] = $image;
+							if (count($images) >= $autoLimit) {
+								break 2;
+							}
+							break;
 						}
 					}
 				}

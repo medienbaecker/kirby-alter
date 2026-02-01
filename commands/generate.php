@@ -236,29 +236,27 @@ class AltTextGenerator extends Generator
 		$totalScanned = 0;
 		$totalNeedingProcessing = 0;
 
-		foreach ($pages as $page) {
-			foreach ($page->images() as $image) {
-				$hash = $this->getImageHash($image);
-				$totalScanned++;
+		foreach (static::allImages($pages) as $entry) {
+			$image = $entry['image'];
+			$parent = $entry['parent'];
+			$hash = $this->getImageHash($image);
+			$totalScanned++;
 
-				// Group all instances by hash
-				if (!isset($imagesByHash[$hash])) {
-					$imagesByHash[$hash] = [
-						'instances' => [],
-						'needsProcessing' => false,
-						'firstOrder' => $totalScanned, // Track order of first occurrence
-					];
-				}
-
-				$imagesByHash[$hash]['instances'][] = [
-					'image' => $image,
-					'page' => $page,
+			if (!isset($imagesByHash[$hash])) {
+				$imagesByHash[$hash] = [
+					'instances' => [],
+					'needsProcessing' => false,
+					'firstOrder' => $totalScanned,
 				];
+			}
 
-				// Check if ANY instance needs processing (check this specific instance)
-				if (!$imagesByHash[$hash]['needsProcessing'] && $this->imageNeedsProcessing($image, $languages)) {
-					$imagesByHash[$hash]['needsProcessing'] = true;
-				}
+			$imagesByHash[$hash]['instances'][] = [
+				'image' => $image,
+				'parent' => $parent,
+			];
+
+			if (!$imagesByHash[$hash]['needsProcessing'] && $this->imageNeedsProcessing($image, $languages)) {
+				$imagesByHash[$hash]['needsProcessing'] = true;
 			}
 		}
 
@@ -426,7 +424,7 @@ class AltTextGenerator extends Generator
 
 						foreach ($instances as $key => $instanceData) {
 							$image = $instanceData['image'];
-							$page = $instanceData['page'];
+							$parent = $instanceData['parent'];
 
 							$needsUpdate = $this->cliConfig['overwrite'] || $this->shouldAutofillAlt($image, $languageCode);
 
@@ -436,7 +434,7 @@ class AltTextGenerator extends Generator
 									$imagesByHash[$hash]['instances'][$key]['image'] = $updatedImage;
 								}
 								$action = $this->cliConfig['dryRun'] ? 'Would store changes for' : 'Stored changes for';
-								$this->cli->green()->out('    ' . $action . ' ' . $image->filename() . ' (' . $page->id() . ')');
+								$this->cli->green()->out('    ' . $action . ' ' . $image->filename() . ' (' . $parent . ')');
 								$processedFiles++;
 							} else {
 								// Explain why the item was skipped (alt exists or alt edited in draft)
@@ -444,11 +442,11 @@ class AltTextGenerator extends Generator
 								$draft = $this->draftAltInfo($image, $languageCode);
 
 								if ($latestAlt !== '') {
-									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ') - already has alt text');
+									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $parent . ') - already has alt text');
 								} elseif ($draft['exists'] === true && $draft['hasKey'] === true) {
-									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ') - alt edited in draft');
+									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $parent . ') - alt edited in draft');
 								} else {
-									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ')');
+									$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $parent . ')');
 								}
 							}
 						}
@@ -457,8 +455,8 @@ class AltTextGenerator extends Generator
 					} else {
 						foreach ($instances as $instanceData) {
 							$image = $instanceData['image'];
-							$page = $instanceData['page'];
-							$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $page->id() . ') - already has alt text');
+							$parent = $instanceData['parent'];
+							$this->cli->dim()->out('    Skipped ' . $image->filename() . ' (' . $parent . ') - already has alt text');
 						}
 					}
 				} catch (\Exception $e) {

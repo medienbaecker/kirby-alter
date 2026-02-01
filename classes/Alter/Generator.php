@@ -253,4 +253,22 @@ class Generator
 
 		return [$baseAlt, $baseLanguageCode];
 	}
+
+	/**
+	 * Yields all images from site and pages.
+	 * Pass $pages to limit scope (e.g. CLI --page filter).
+	 */
+	public static function allImages($pages = null): \Generator
+	{
+		foreach (site()->images() as $image) {
+			yield ['image' => $image, 'parent' => 'site'];
+		}
+
+		$pages ??= site()->index(true);
+		foreach ($pages as $page) {
+			foreach ($page->images() as $image) {
+				yield ['image' => $image, 'parent' => $page->id()];
+			}
+		}
+	}
 }
