@@ -58,7 +58,7 @@
 								<span class="k-languages-dropdown-item-info">
 									<k-icon v-if="languageHasUnsavedChanges(defaultLanguageItem.code)" type="edit-line"
 										class="k-languages-dropdown-item-icon" role="img"
-										aria-label="Unsaved changes" />
+										:aria-label="$t('medienbaecker.alter.filter.unsaved')" />
 									<span class="k-languages-dropdown-item-code">
 										{{ defaultLanguageItem.code.toUpperCase() }}
 									</span>
@@ -74,7 +74,7 @@
 								<span class="k-languages-dropdown-item-info">
 									<k-icon v-if="languageHasUnsavedChanges(lang.code)" type="edit-line"
 										class="k-languages-dropdown-item-icon" role="img"
-										aria-label="Unsaved changes" />
+										:aria-label="$t('medienbaecker.alter.filter.unsaved')" />
 									<span class="k-languages-dropdown-item-code">
 										{{ lang.code.toUpperCase() }}
 									</span>
