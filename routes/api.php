@@ -490,30 +490,12 @@ return [
 			// 1) Directly update the file with the alt text (publish it)
 			$image = $image->update(['alt' => $alt], $languageCode);
 
-			// 2) Remove alt from the changes version (if it exists) to clean up
+			// 2) Delete the changes version if it's now identical to latest
 			$changes = $image->version('changes');
-			$hasChanges = $languageCode === null
-				? $changes->exists()
-				: $changes->exists($languageCode);
+			$changesLang = $languageCode ?? 'default';
 
-			if ($hasChanges) {
-				$changesContent = $languageCode === null
-					? ($changes->read() ?? [])
-					: ($changes->read($languageCode) ?? []);
-				unset($changesContent['alt']);
-
-				if (empty($changesContent)) {
-					// No other draft fields, delete the changes version
-					$languageCode === null
-						? $changes->delete()
-						: $changes->delete($languageCode);
-				} else {
-					// Keep other draft fields, update alt
-					$changesContent['alt'] = $alt;
-					$languageCode === null
-						? $changes->replace($changesContent)
-						: $changes->replace($changesContent, $languageCode);
-				}
+			if ($changes->exists($changesLang) && $changes->isIdentical('latest', $changesLang)) {
+				$changes->delete($changesLang);
 			}
 
 			return ['success' => true];
@@ -552,21 +534,16 @@ return [
 				return ['success' => true];
 			}
 
-			$changesContent = $languageCode === null
-				? ($changes->read() ?? [])
-				: ($changes->read($languageCode) ?? []);
-			unset($changesContent['alt']);
+			// Reset alt in changes to match latest
+			$changesLang = $languageCode ?? 'default';
+			$latestContent = $image->version('latest')->read($changesLang) ?? [];
+			$changesContent = $changes->read($changesLang) ?? [];
+			$changesContent['alt'] = $latestContent['alt'] ?? '';
+			$changes->replace($changesContent, $changesLang);
 
-			if (empty($changesContent) === true) {
-				$languageCode === null
-					? $changes->delete()
-					: $changes->delete($languageCode);
-			} else {
-				if ($languageCode === null) {
-					$changes->replace($changesContent);
-				} else {
-					$changes->replace($changesContent, $languageCode);
-				}
+			// Delete changes if now identical to latest
+			if ($changes->isIdentical('latest', $changesLang)) {
+				$changes->delete($changesLang);
 			}
 
 			return ['success' => true];
