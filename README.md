@@ -1,6 +1,8 @@
 # Kirby Alter
 
-Generate, edit and review alt texts for images on [Kirby CMS](https://getkirby.com/).
+Edit, generate and review alt texts for images in the [Kirby](https://getkirby.com/) Panel.
+
+![Screenshot of the custom panel view with several cat images and alt texts](https://github.com/user-attachments/assets/48540160-430c-4a40-a80f-d8cc29de5a5e)
 
 ## Requirements
 
@@ -31,8 +33,6 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of
 
 > [!NOTE]
 > On multilingual pages, the default alt text appears as a placeholder in non-default languages, making it easier to spot missing translations.
-
-![Screenshot of the custom panel view with several cat images and alt texts](https://github.com/user-attachments/assets/6136bebe-ec70-4a33-ab61-80a994af237c)
 
 ### CLI command
 
