@@ -3,11 +3,26 @@
 use Kirby\Exception\NotFoundException;
 use Kirby\Exception\PermissionException;
 
+$versionExists = static function ($version, ?string $code): bool {
+	return $code === null
+		? $version->exists()
+		: $version->exists($code);
+};
+
+$versionContentArray = static function ($version, ?string $code): array {
+	try {
+		$fields = $code === null ? $version->read() : $version->read($code);
+		return $fields ?? [];
+	} catch (\Throwable $e) {
+		return [];
+	}
+};
+
 return [
 	[
 		'pattern' => 'alter/images',
 		'method' => 'GET',
-		'action' => function () {
+		'action' => function () use ($versionExists, $versionContentArray) {
 			$request = kirby()->request();
 			$page = (int)$request->get('page', 1);
 			$filter = $request->get('filter', 'all');
@@ -33,21 +48,6 @@ return [
 				}
 			};
 
-			$versionExists = static function ($version, ?string $code): bool {
-				return $code === null
-					? $version->exists()
-					: $version->exists($code);
-			};
-
-			$versionContentArray = static function ($version, ?string $code): array {
-				try {
-					$fields = $code === null ? $version->read() : $version->read($code);
-					return $fields ?? [];
-				} catch (\Throwable $e) {
-					return [];
-				}
-			};
-
 			// Get template filter from options
 			$allowedTemplates = kirby()->option('medienbaecker.alter.templates');
 			if (is_string($allowedTemplates)) {
@@ -58,7 +58,7 @@ return [
 			$allImages = [];
 
 			// Helper to process a single image and return its data array
-			$processImage = function ($image, $parentId, $parentTitle, $parentPanelUrl, $parentPanelPath, $parentSort, $parentStatus, $hasParentDrafts, $breadcrumbs, $sortKey) use ($languageCode, $defaultLanguageCode, $siteLanguages, $allowedTemplates, $latestContentArray, $versionExists, $versionContentArray, &$unsavedByLanguage) {
+			$processImage = function ($image, array $parent) use ($languageCode, $defaultLanguageCode, $siteLanguages, $allowedTemplates, $latestContentArray, $versionExists, $versionContentArray, &$unsavedByLanguage) {
 				if ($allowedTemplates !== null) {
 					$imageTemplate = $image->template();
 					if (!in_array($imageTemplate, $allowedTemplates)) {
@@ -114,7 +114,7 @@ return [
 					$hasMissingAlt = true;
 				}
 
-				$changesPath = $parentPanelPath . '/files/' . $image->filename();
+				$changesPath = $parent['panelPath'] . '/files/' . $image->filename();
 
 				$defaultAlt = $currentAlt;
 				if ($defaultLanguageCode !== null && $defaultLanguageCode !== $languageCode) {
@@ -140,15 +140,15 @@ return [
 					'hasMissingAlt' => $hasMissingAlt,
 					'changesPath' => $changesPath,
 					'panelUrl' => $image->panel()->url(),
-					'pageUrl' => $parentPanelUrl,
-					'pageTitle' => $parentTitle,
-					'pageId' => $parentId,
-					'pagePanelUrl' => $parentPanelUrl,
-					'pageSort' => $parentSort,
-					'pageStatus' => $parentStatus,
-					'hasParentDrafts' => $hasParentDrafts,
-					'breadcrumbs' => $breadcrumbs,
-					'sortKey' => $sortKey,
+					'pageUrl' => $parent['panelUrl'],
+					'pageTitle' => $parent['title'],
+					'pageId' => $parent['id'],
+					'pagePanelUrl' => $parent['panelUrl'],
+					'pageSort' => $parent['sort'],
+					'pageStatus' => $parent['status'],
+					'hasParentDrafts' => $parent['hasParentDrafts'],
+					'breadcrumbs' => $parent['breadcrumbs'],
+					'sortKey' => $parent['sortKey'],
 					'language' => $languageCode,
 					'altDefault' => $defaultAlt,
 				];
@@ -166,11 +166,17 @@ return [
 				]];
 
 				foreach ($site->images() as $image) {
-					$result = $processImage(
-						$image, 'site', $siteLabel,
-						'/site', 'site', null, null,
-						false, $siteBreadcrumbs, '000000'
-					);
+					$result = $processImage($image, [
+						'id'              => 'site',
+						'title'           => $siteLabel,
+						'panelUrl'        => '/site',
+						'panelPath'       => 'site',
+						'sort'            => null,
+						'status'          => null,
+						'hasParentDrafts' => false,
+						'breadcrumbs'     => $siteBreadcrumbs,
+						'sortKey'         => '000000',
+					]);
 					if ($result !== null) {
 						$allImages[] = $result;
 					}
@@ -208,12 +214,17 @@ return [
 					];
 
 					foreach ($sitePage->images() as $image) {
-						$result = $processImage(
-							$image, $sitePage->id(), $sitePage->title()->value(),
-							$sitePage->panel()->url(), $sitePage->panel()->path(),
-							$sitePage->num(), $sitePage->status(),
-							$hasParentDrafts, $breadcrumbs, $sortKey
-						);
+						$result = $processImage($image, [
+							'id'              => $sitePage->id(),
+							'title'           => $sitePage->title()->value(),
+							'panelUrl'        => $sitePage->panel()->url(),
+							'panelPath'       => $sitePage->panel()->path(),
+							'sort'            => $sitePage->num(),
+							'status'          => $sitePage->status(),
+							'hasParentDrafts' => $hasParentDrafts,
+							'breadcrumbs'     => $breadcrumbs,
+							'sortKey'         => $sortKey,
+						]);
 						if ($result !== null) {
 							$allImages[] = $result;
 						}
@@ -301,7 +312,7 @@ return [
 		[
 			'pattern' => 'alter/generate',
 		'method' => 'POST',
-		'action' => function () {
+		'action' => function () use ($versionExists, $versionContentArray) {
 			$user = kirby()->user();
 			if (!$user) {
 				throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
@@ -357,21 +368,6 @@ return [
 					if (is_string($allowedTemplates)) {
 						$allowedTemplates = [$allowedTemplates];
 					}
-
-					$versionExists = static function ($version, ?string $code): bool {
-						return $code === null
-							? $version->exists()
-							: $version->exists($code);
-					};
-
-					$versionContentArray = static function ($version, ?string $code): array {
-						try {
-							$fields = $code === null ? $version->read() : $version->read($code);
-							return $fields ?? [];
-						} catch (\Throwable $e) {
-							return [];
-						}
-					};
 
 					$currentAltForLanguage = static function ($image, ?string $code) use ($versionExists, $versionContentArray): string {
 						$latest = $image->version('latest');
