@@ -1193,25 +1193,6 @@ export default {
 
 			try {
 				await this.$api.post('alter/discard', { imageId: image.id });
-
-				// Reload only the affected image's data from backend
-				const response = await this.$api.get('alter/images', {
-					page: this.page,
-					filter: this.filterMode || 'all',
-				});
-
-				this.generationStats = response.generationStats || this.generationStats;
-
-				const updatedImage = response.images.find((img) => img.id === imageId);
-
-				if (updatedImage) {
-					this.$set(this.originalImages, imageId, {
-						alt: updatedImage.altOriginal || '',
-					});
-					this.$set(this.currentImages, imageId, {
-						alt: updatedImage.alt || '',
-					});
-				}
 			} catch (error) {
 				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
 				console.error(error);
