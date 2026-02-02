@@ -70,12 +70,14 @@ class PanelGenerator extends Generator
 			$baseHasAlt = Str::length(trim((string)$baseAlt)) > 0;
 			$shouldTranslate = $baseHasAlt && $baseLanguageCode !== $languageCode;
 
+			$languageName = $language?->name() ?? option('medienbaecker.alter.language');
+
 			if ($shouldTranslate) {
-				$altText = $this->translateAltText($baseAlt, $language);
+				$altText = $this->translateAltText($baseAlt, $languageName);
 				$action = 'translated';
 			} else {
 				$imagePayload ??= $this->encodeImage($image);
-				$altText = $this->generateAltText($imagePayload, $image, $language);
+				$altText = $this->generateAltText($imagePayload, $image, $languageName);
 				$action = 'generated';
 			}
 

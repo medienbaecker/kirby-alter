@@ -147,9 +147,9 @@ class AltTextGenerator extends Generator
 	private function selectLanguages(): array
 	{
 		if (!kirby()->multilang()) {
-			// For single-language sites, ask for the language name
-			$input = $this->cli->input('Language for alt text generation (English):');
-			$input->defaultTo('English');
+			$default = option('medienbaecker.alter.language', 'English');
+			$input = $this->cli->input('Language for alt text generation (' . $default . '):');
+			$input->defaultTo($default);
 			$languageName = $input->prompt();
 
 			$mockLanguage = new class($languageName) {
@@ -167,7 +167,7 @@ class AltTextGenerator extends Generator
 
 				public function code(): ?string
 				{
-					return null; // Single language has no code
+					return null;
 				}
 
 				public function isDefault(): bool
@@ -406,7 +406,7 @@ class AltTextGenerator extends Generator
 		// Process by language to avoid immutable object issues
 		foreach ($languages as $language) {
 			$languageCode = $language?->code();
-			$languageName = $language?->name() ?? 'Default';
+			$languageName = $language->name() ?? 'Default';
 
 			$this->cli->out('');
 			$this->cli->bold()->cyan()->out('Processing ' . $languageName . ' language...');
@@ -526,10 +526,10 @@ class AltTextGenerator extends Generator
 			// Default language path: if another language already has alt, prefer translating it
 			$existingOtherAlt = $this->findAltInOtherLanguages($instances, $allLanguages, $language);
 			if ($existingOtherAlt) {
-				$altText = $this->translateAltText($existingOtherAlt, $language);
+				$altText = $this->translateAltText($existingOtherAlt, $language->name());
 				$result = ['text' => $altText, 'source' => 'translated from existing alt'];
 			} else {
-				$altText = $this->generateFromImage($image, $language);
+				$altText = $this->generateFromImage($image, $language->name());
 				$result = ['text' => $altText, 'source' => 'generated from image'];
 			}
 		}
@@ -538,7 +538,7 @@ class AltTextGenerator extends Generator
 		return $result;
 	}
 
-	private function generateFromImage($image, $language = null): string
+	private function generateFromImage($image, ?string $language = null): string
 	{
 		$imagePayload = $this->encodeImage($image);
 		return $this->generateAltText($imagePayload, $image, $language);
@@ -591,7 +591,7 @@ class AltTextGenerator extends Generator
 
 			// If still no default alt text found, generate it
 			if (!$defaultAltText) {
-				$defaultAltText = $this->generateFromImage($image, kirby()->defaultLanguage());
+				$defaultAltText = $this->generateFromImage($image, kirby()->defaultLanguage()->name());
 				$this->altTextCache[$defaultCacheKey] = $defaultAltText;
 
 				// Store the default language as draft (alt-only smart write)
@@ -599,7 +599,7 @@ class AltTextGenerator extends Generator
 			}
 		}
 
-		return $this->translateAltText($defaultAltText, $language);
+		return $this->translateAltText($defaultAltText, $language->name());
 	}
 
 	/**

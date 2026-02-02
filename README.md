@@ -81,6 +81,7 @@ return [
     'templates' => null,           // Optional: restrict to specific file templates (string or array)
     'prompt' => 'Custom prompt',   // Optional: custom prompt for alt text generation
     'maxLength' => false,          // Optional: set a max length (e.g. 125) for alt texts in the panel counter
+    'language' => 'English',       // Optional: output language for non-multilingual sites
     'panel.generation' => false,   // Show AI generation buttons in the Panel (default: CLI-only)
   ]
 ];

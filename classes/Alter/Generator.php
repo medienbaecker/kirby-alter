@@ -98,7 +98,7 @@ class Generator
 		];
 	}
 
-	protected function generateAltText(array $imagePayload, $image, $language = null): string
+	protected function generateAltText(array $imagePayload, $image, ?string $language = null): string
 	{
 		$prompt = $this->prompt;
 
@@ -107,7 +107,7 @@ class Generator
 		}
 
 		if ($language) {
-			$prompt .= ' Write the alt text in ' . $language->name() . '.';
+			$prompt .= ' Write the alt text in ' . $language . '.';
 		}
 
 		if ($this->maxLength) {
@@ -141,10 +141,9 @@ class Generator
 		return $this->callClaude($requestData);
 	}
 
-	protected function translateAltText(string $text, $targetLanguage): string
+	protected function translateAltText(string $text, string $targetLanguage): string
 	{
-		$targetName = $targetLanguage ? $targetLanguage->name() : 'default language';
-		$prompt = 'Translate this alt text to ' . $targetName . '. Keep it concise and descriptive. Only return the translated alt text, nothing else: "' . addslashes($text) . '"';
+		$prompt = 'Translate this alt text to ' . $targetLanguage . '. Keep it concise and descriptive. Only return the translated alt text, nothing else: "' . addslashes($text) . '"';
 
 		if ($this->maxLength) {
 			$prompt .= ' Keep the translation under ' . (int)$this->maxLength . ' characters.';
