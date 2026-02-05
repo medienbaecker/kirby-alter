@@ -29,10 +29,8 @@
 					</div>
 
 					<div v-if="panelGenerationEnabled" class="k-view-button">
-						<k-button :dropdown="!generatingAll && languages.length > 1"
-							:icon="generationButtonIcon"
-							variant="filled" :theme="generationButtonTheme" size="sm"
-							:responsive="'text'"
+						<k-button :dropdown="!generatingAll && languages.length > 1" :icon="generationButtonIcon"
+							variant="filled" :theme="generationButtonTheme" size="sm" :responsive="'text'"
 							:text="generationButtonLabel" :title="generationButtonLabel"
 							:disabled="generationButtonDisabled"
 							@click="generatingAll ? stopGeneration() : (languages.length > 1 ? toggleDropdown('scopeDropdown') : onGenerateAll('current'))" />
@@ -119,12 +117,12 @@
 								? 'status-draft'
 								: pageStatusUi(pageGroup).icon
 								" :theme="pageGroup.hasParentDrafts
-					? 'negative-icon'
-					: pageStatusUi(pageGroup).theme
-					" :title="pageGroup.hasParentDrafts
-					? $t('medienbaecker.alter.parentDraft')
-					: pageStatusUi(pageGroup).title
-					" :responsive="true">
+									? 'negative-icon'
+									: pageStatusUi(pageGroup).theme
+									" :title="pageGroup.hasParentDrafts
+										? $t('medienbaecker.alter.parentDraft')
+										: pageStatusUi(pageGroup).title
+										" :responsive="true">
 							{{
 								pageGroup.hasParentDrafts
 									? $t('page.status.draft')
@@ -152,12 +150,9 @@
 								<div v-if="
 									shouldShowGenerateButton(item.id) || hasChanges(item.id)
 								" class="k-form-controls">
-									<k-button v-if="shouldShowGenerateButton(item.id)"
-										:icon="imageGenerateIcon(item)"
-										:text="imageGenerateLabel(item)"
-										variant="filled" theme="orange-icon" size="sm"
-										:disabled="generating[item.id]"
-										@click="onGenerateImage(item.id)" />
+									<k-button v-if="shouldShowGenerateButton(item.id)" :icon="imageGenerateIcon(item)"
+										:text="imageGenerateLabel(item)" variant="filled" theme="purple" size="sm"
+										:disabled="generating[item.id]" @click="onGenerateImage(item.id)" />
 
 									<k-button-group v-if="hasChanges(item.id)" layout="collapsed">
 										<k-button icon="undo" variant="filled" theme="notice" size="sm"
@@ -347,7 +342,7 @@ export default {
 			return this.generatingAll ? 'cancel' : 'ai';
 		},
 		generationButtonTheme() {
-			return this.generatingAll ? 'negative' : 'orange-icon';
+			return this.generatingAll ? 'negative' : 'purple';
 		},
 		generationButtonLabel() {
 			return this.generatingAll
@@ -628,7 +623,6 @@ export default {
 		},
 
 		imageGenerateLabel(item) {
-			if (this.hasChanges(item.id)) return null;
 			if (!this.canTranslate(item)) {
 				return this.$t('medienbaecker.alter.generate.label');
 			}
@@ -1324,7 +1318,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	flex-grow: 1;
-	gap: var(--spacing-2);
+	gap: var(--spacing-4);
 	padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
 }
 
@@ -1332,7 +1326,11 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
-	gap: var(--spacing-4);
+	gap: var(--spacing-2);
+}
+
+.k-item .k-button-group:first-child {
+	margin-inline-start: auto;
 }
 
 .k-field-name-alt {
