@@ -1336,4 +1336,8 @@ export default {
 .k-field-name-alt {
 	flex-grow: 1;
 }
+
+.k-pagination {
+	margin-block-start: var(--columns-block-gap);
+}
 </style>
