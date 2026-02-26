@@ -1049,17 +1049,17 @@ export default {
 		// ---------------------------------------------------------------------
 
 		onAltTextInput(imageId, value) {
-			const sanitizedValue = value.replace(/[\r\n]+/g, ' ').trim();
+			value = value.replace(/[\r\n]+/g, ' ');
 
 			if (this.currentImages[imageId]) {
 				const wasChanged = this.hasChanges(imageId);
 
-				this.$set(this.currentImages[imageId], 'alt', sanitizedValue);
+				this.$set(this.currentImages[imageId], 'alt', value);
 
 				const isChanged = this.hasChanges(imageId);
 				this.updateUnsavedTotals(wasChanged, isChanged);
 
-				this.updateAltByLanguage(imageId, sanitizedValue.length > 0);
+				this.updateAltByLanguage(imageId, value.length > 0);
 
 				// Debounced draft save
 				this.scheduleAltDraftSave(imageId);
