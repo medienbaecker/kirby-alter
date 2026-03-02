@@ -8,6 +8,7 @@ return array(
 	'medienbaecker.alter.image'                    => 'image',
 	'medienbaecker.alter.images'                   => 'images',
 	'medienbaecker.alter.notAuthenticated'         => 'Not authenticated',
+	'medienbaecker.alter.noPermission'             => 'You are not allowed to edit this file',
 	'medienbaecker.alter.invalidField'             => 'Invalid field',
 	'medienbaecker.alter.imageNotFound'            => 'Image not found',
 	'medienbaecker.alter.success'                  => 'Changes saved successfully',

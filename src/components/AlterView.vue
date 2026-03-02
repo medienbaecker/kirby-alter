@@ -146,9 +146,10 @@
 									@mousedown.native="setActiveImage(item.id)"
 									@keydown.native="onAltTextKeydown(item.id, $event)"
 									:placeholder="placeholderFor(item)" :buttons="false" :counter="true"
-									:maxlength="maxLength || null" size="small" />
+									:maxlength="maxLength || null" size="small"
+									:disabled="isImageDisabled(item.id)" />
 								<div v-if="
-									shouldShowGenerateButton(item.id) || hasChanges(item.id)
+									!isImageDisabled(item.id) && (shouldShowGenerateButton(item.id) || hasChanges(item.id))
 								" class="k-form-controls">
 									<k-button v-if="shouldShowGenerateButton(item.id)" :icon="imageGenerateIcon(item)"
 										:text="imageGenerateLabel(item)" variant="filled" theme="purple" size="sm"
@@ -582,6 +583,11 @@ export default {
 
 		getImageData(imageId) {
 			return this.currentImages[imageId] || { alt: '' };
+		},
+
+		isImageDisabled(imageId) {
+			const image = this.getImageById(imageId);
+			return image?.editable === false;
 		},
 
 		shouldShowGenerateButton(imageId) {

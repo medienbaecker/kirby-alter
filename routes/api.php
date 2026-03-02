@@ -139,6 +139,7 @@ return [
 					'sortKey' => $parent['sortKey'],
 					'language' => $languageCode,
 					'altDefault' => $defaultAlt,
+					'editable' => $image->permissions()->update() === true,
 				];
 			};
 
@@ -575,6 +576,10 @@ return [
 				$image = kirby()->file($imageId);
 				if (!$image) {
 					return ['error' => t('medienbaecker.alter.imageNotFound')];
+				}
+
+				if ($image->permissions()->update() !== true) {
+					throw new PermissionException(t('medienbaecker.alter.noPermission'));
 				}
 
 				// Save alt to draft changes (always create or update changes version)

@@ -8,6 +8,7 @@ return array(
 	'medienbaecker.alter.image'                    => 'Bild',
 	'medienbaecker.alter.images'                   => 'Bilder',
 	'medienbaecker.alter.notAuthenticated'         => 'Nicht authentifiziert',
+	'medienbaecker.alter.noPermission'             => 'Du darfst diese Datei nicht bearbeiten',
 	'medienbaecker.alter.invalidField'             => 'Ungültiges Feld',
 	'medienbaecker.alter.imageNotFound'            => 'Bild nicht gefunden',
 	'medienbaecker.alter.success'                  => 'Änderungen erfolgreich gespeichert',
