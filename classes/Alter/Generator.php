@@ -83,7 +83,7 @@ class Generator
 		$resized = $image->thumb([
 			'width' => 500,
 			'height' => 500,
-			'format' => false,
+			'format' => null,
 		]);
 		$resized->publish();
 		$content = $resized->read();
