@@ -31,6 +31,20 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of
 - Save or discard changes per image or in bulk
 - Optional AI generation buttons to draft alt texts for the current list or a single image
 
+If you've overwritten `panel.menu` in your config, make sure to add Alter back:
+
+```php
+'panel.menu' => [
+	'site',
+	'projects' => [
+		'icon'  => 'heart',
+		'label' => 'Projects',
+		'link'  => 'pages/portfolio',
+	],
+	'alter' # Add this line wherever you want Alter to appear in the menu
+]
+```
+
 > [!NOTE]
 > On multilingual pages, the default alt text appears as a placeholder in non-default languages, making it easier to spot missing translations.
 
@@ -51,8 +65,7 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of
 - `--verbose` - Show detailed progress information (default: `false`)
 - `--page` - Start from specific page URI, e.g. `"blog"` (optional)
 
-> [!WARNING]
-> `--dry-run` still uses the API (it only skips writing changes).
+> [!WARNING] > `--dry-run` still uses the API (it only skips writing changes).
 
 #### Usage Examples
 
@@ -87,7 +100,7 @@ return [
 ];
 ```
 
-Enable `panel.generation` to surface a “Generate” button in header and per image. A dropdown lets you choose whether to translate for the current language only or for all site languages. Panel generation never overwrites existing alt texts; it only fills missing ones as drafts.
+Enable `panel.generation` to surface “Generate” buttons in the Alter view. A dropdown lets you choose whether to translate for the current language only or for all site languages. Panel generation never overwrites existing alt texts; it only fills missing ones as drafts.
 
 > [!TIP]
 > Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
