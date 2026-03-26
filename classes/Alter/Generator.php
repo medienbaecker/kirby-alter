@@ -94,7 +94,7 @@ class Generator
 
 		return [
 			'data' => base64_encode($content),
-			'mime' => $image->mime(),
+			'mime' => $resized->mime(),
 		];
 	}
 
