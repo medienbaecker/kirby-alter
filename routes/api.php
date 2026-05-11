@@ -68,6 +68,12 @@ return [
 					}
 				}
 
+				if (is_callable(kirby()->option('medienbaecker.alter.ignore'))) {
+					if (kirby()->option('medienbaecker.alter.ignore')($image) === false) {
+						return null;
+					}
+				}
+
 				$latestContent = $latestContentArray($image, $languageCode);
 				$latestAlt = (string)($latestContent['alt'] ?? '');
 				$changes = $image->version('changes');
