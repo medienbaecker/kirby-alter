@@ -3,6 +3,8 @@
 use Kirby\Exception\NotFoundException;
 use Kirby\Exception\PermissionException;
 use Medienbaecker\Alter\Generator;
+use Medienbaecker\Alter\ImageIndex;
+use Medienbaecker\Alter\LanguageContext;
 use Medienbaecker\Alter\PanelGenerator;
 
 $versionExists = static function ($version, ?string $code): bool {
@@ -24,281 +26,52 @@ return [
 	[
 		'pattern' => 'alter/images',
 		'method' => 'GET',
-		'action' => function () use ($versionExists, $versionContentArray) {
-			$request = kirby()->request();
-			$page = (int)$request->get('page', 1);
+		'action' => function () {
+			$kirby = kirby();
+			$request = $kirby->request();
+			$page = max(1, (int)$request->get('page', 1));
 			$filter = $request->get('filter', 'all');
 			$limit = 100;
 
-			// Get current language from panel
-			$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
-			$defaultLanguageCode = kirby()->multilang() ? kirby()->defaultLanguage()->code() : null;
-			$siteLanguages = kirby()->multilang() ? kirby()->languages()->values() : [];
-			$unsavedByLanguage = [];
-
-			foreach ($siteLanguages as $language) {
-				$unsavedByLanguage[$language->code()] = 0;
-			}
-
-			$latestContentArray = static function ($model, ?string $code): array {
-				try {
-					$latest = $model->version('latest');
-					$fields = $code === null ? $latest->read() : $latest->read($code);
-					return $fields ?? [];
-				} catch (\Throwable $e) {
-					return [];
-				}
-			};
-
-			// Get template filter from options
-			$allowedTemplates = kirby()->option('medienbaecker.alter.templates');
-			if (is_string($allowedTemplates)) {
+			$allowedTemplates = $kirby->option('medienbaecker.alter.templates');
+			if (is_string($allowedTemplates) === true) {
 				$allowedTemplates = [$allowedTemplates];
 			}
 
-			// Collect all images
-			$allImages = [];
+			$language = LanguageContext::fromKirby($kirby);
+			$index = ImageIndex::build($language, $allowedTemplates);
+			$aggregates = $index->aggregate();
 
-			// Helper to process a single image and return its data array
-			$processImage = function ($image, array $parent) use ($languageCode, $defaultLanguageCode, $siteLanguages, $allowedTemplates, $latestContentArray, $versionExists, $versionContentArray, &$unsavedByLanguage) {
-				if ($allowedTemplates !== null) {
-					$imageTemplate = $image->template();
-					if (!in_array($imageTemplate, $allowedTemplates)) {
-						return null;
-					}
-				}
-
-				$latestContent = $latestContentArray($image, $languageCode);
-				$latestAlt = (string)($latestContent['alt'] ?? '');
-				$changes = $image->version('changes');
-				$altByLanguage = [];
-
-				if (!empty($siteLanguages)) {
-					foreach ($siteLanguages as $lang) {
-						$langCode = $lang->code();
-						$langLatestContent = $latestContentArray($image, $langCode);
-						$langLatestAlt = (string)($langLatestContent['alt'] ?? '');
-						$langCurrentAlt = $langLatestAlt;
-
-						if ($versionExists($changes, $langCode) === true) {
-							$langChangesContent = $versionContentArray($changes, $langCode);
-							if (array_key_exists('alt', $langChangesContent) === true) {
-								$langCurrentAlt = (string)($langChangesContent['alt'] ?? '');
-								if ($langCurrentAlt !== $langLatestAlt) {
-									$unsavedByLanguage[$langCode] = ($unsavedByLanguage[$langCode] ?? 0) + 1;
-								}
-							}
-						}
-
-						$altByLanguage[$langCode] = trim((string)$langCurrentAlt) !== '';
-					}
-				}
-
-				$changesContent = $versionExists($changes, $languageCode)
-					? $versionContentArray($changes, $languageCode)
-					: [];
-
-				$currentAlt = array_key_exists('alt', $changesContent)
-					? (string)($changesContent['alt'] ?? '')
-					: $latestAlt;
-				$hasChanges = $currentAlt !== $latestAlt;
-
-				$changesPath = $parent['panelPath'] . '/files/' . $image->filename();
-
-				$defaultAlt = $currentAlt;
-				if ($defaultLanguageCode !== null && $defaultLanguageCode !== $languageCode) {
-					$defaultLatest = $latestContentArray($image, $defaultLanguageCode);
-					$defaultAlt = (string)($defaultLatest['alt'] ?? '');
-					$defaultChangesContent = $versionExists($changes, $defaultLanguageCode)
-						? $versionContentArray($changes, $defaultLanguageCode)
-						: [];
-					if (array_key_exists('alt', $defaultChangesContent)) {
-						$defaultAlt = (string)($defaultChangesContent['alt'] ?? '');
-					}
-				}
-
-				return [
-					'id' => $image->id(),
-					'url' => $image->url(),
-					'thumbUrl' => $image->resize(500, 500)->url(),
-					'filename' => $image->filename(),
-					'alt' => $currentAlt,
-					'altOriginal' => $latestAlt,
-					'hasChanges' => $hasChanges,
-					'altByLanguage' => $altByLanguage,
-					'changesPath' => $changesPath,
-					'panelUrl' => $image->panel()->url(),
-					'pageUrl' => $parent['panelUrl'],
-					'pageTitle' => $parent['title'],
-					'pageId' => $parent['id'],
-					'pagePanelUrl' => $parent['panelUrl'],
-					'pageSort' => $parent['sort'],
-					'pageStatus' => $parent['status'],
-					'hasParentDrafts' => $parent['hasParentDrafts'],
-					'breadcrumbs' => $parent['breadcrumbs'],
-					'sortKey' => $parent['sortKey'],
-					'language' => $languageCode,
-					'altDefault' => $defaultAlt,
-					'editable' => $image->permissions()->update() === true,
-				];
-			};
-
-			// Collect site-level images
-			$site = site();
-			if ($site->hasImages()) {
-				$siteLabel = t('view.site');
-				$siteBreadcrumbs = [[
-					'title' => $siteLabel,
-					'label' => $siteLabel,
-					'panelUrl' => '/site',
-					'link' => '/site',
-				]];
-
-				foreach ($site->images() as $image) {
-					$result = $processImage($image, [
-						'id'              => 'site',
-						'title'           => $siteLabel,
-						'panelUrl'        => '/site',
-						'panelPath'       => 'site',
-						'sort'            => null,
-						'status'          => null,
-						'hasParentDrafts' => false,
-						'breadcrumbs'     => $siteBreadcrumbs,
-						'sortKey'         => '000000',
-					]);
-					if ($result !== null) {
-						$allImages[] = $result;
-					}
-				}
-			}
-
-			// Collect page images
-			$pages = site()->index(true);
-
-			foreach ($pages as $sitePage) {
-				if ($sitePage->hasImages()) {
-					$hasParentDrafts = $sitePage->parents()->filter(fn($p) => $p->isDraft())->isNotEmpty();
-
-					$parents = $sitePage->parents()->flip();
-					$sortKey = '';
-					foreach ($parents as $parent) {
-						$sortKey .= sprintf('%06d-', $parent->num() ?? 999999);
-					}
-					$sortKey .= sprintf('%06d', $sitePage->num() ?? 999999);
-
-					$breadcrumbs = [];
-					foreach ($parents as $parent) {
-						$breadcrumbs[] = [
-							'title' => $parent->title()->value(),
-							'label' => $parent->title()->value(),
-							'panelUrl' => $parent->panel()->url(),
-							'link' => $parent->panel()->url(),
-						];
-					}
-					$breadcrumbs[] = [
-						'title' => $sitePage->title()->value(),
-						'label' => $sitePage->title()->value(),
-						'panelUrl' => $sitePage->panel()->url(),
-						'link' => $sitePage->panel()->url(),
-					];
-
-					foreach ($sitePage->images() as $image) {
-						$result = $processImage($image, [
-							'id'              => $sitePage->id(),
-							'title'           => $sitePage->title()->value(),
-							'panelUrl'        => $sitePage->panel()->url(),
-							'panelPath'       => $sitePage->panel()->path(),
-							'sort'            => $sitePage->num(),
-							'status'          => $sitePage->status(),
-							'hasParentDrafts' => $hasParentDrafts,
-							'breadcrumbs'     => $breadcrumbs,
-							'sortKey'         => $sortKey,
-						]);
-						if ($result !== null) {
-							$allImages[] = $result;
-						}
-					}
-				}
-			}
-
-			// Store original total before filtering
-			$originalTotalImages = count($allImages);
-
-			// Generation stats (always based on all images)
-			$generationStats = [
-				'missingCurrent' => 0,
-				'missingAny' => 0,
-			];
-
-			foreach ($allImages as $imageData) {
-				$currentAlt = trim((string)($imageData['alt'] ?? ''));
-				if ($currentAlt === '') {
-					$generationStats['missingCurrent']++;
-				}
-
-				$altByLang = $imageData['altByLanguage'] ?? [];
-				$hasMissing = empty($altByLang)
-					? $currentAlt === ''
-					: in_array(false, $altByLang, true);
-				if ($hasMissing) {
-					$generationStats['missingAny']++;
-				}
-			}
-
-			// Apply filter
-			$filteredImages = $allImages;
-			if ($filter === 'saved') {
-				$filteredImages = array_filter($allImages, function ($imageData) {
-					return !empty($imageData['alt']) && trim($imageData['alt']) !== '';
-				});
-			} elseif ($filter === 'missing') {
-				$filteredImages = array_filter($allImages, function ($imageData) {
-					return empty($imageData['alt']) || trim($imageData['alt']) === '';
-				});
-			} elseif ($filter === 'unsaved') {
-				$filteredImages = array_filter($allImages, function ($imageData) {
-					return $imageData['hasChanges'] === true;
-				});
-			}
-
-			// Re-index filtered array
-			$filteredImages = array_values($filteredImages);
-			$filteredTotalImages = count($filteredImages);
-
-			// Calculate totals for header badges (always based on all images)
-			$totalUnsaved = 0;
-			$totalSaved = 0;
-			foreach ($allImages as $imageData) {
-				if ($imageData['hasChanges']) {
-					$totalUnsaved++;
-				}
-				if (!empty($imageData['altOriginal']) && trim($imageData['altOriginal']) !== '') {
-					$totalSaved++;
-				}
-			}
-
-			$totalPages = ceil($filteredTotalImages / $limit);
+			$filtered = array_values($index->filter($filter));
+			$filteredTotal = count($filtered);
 			$offset = ($page - 1) * $limit;
-			$paginatedImages = array_slice($filteredImages, $offset, $limit);
+			$slice = array_slice($filtered, $offset, $limit);
+
+			$images = array_values(array_filter(
+				array_map(fn($light) => $index->hydrate($light), $slice)
+			));
 
 			return [
-				'images' => $paginatedImages,
-				'defaultLanguage' => $defaultLanguageCode,
-				'unsavedByLanguage' => $unsavedByLanguage,
+				'images' => $images,
+				'defaultLanguage' => $language->default,
+				'unsavedByLanguage' => $aggregates['unsavedByLanguage'],
 				'pagination' => [
-					'page' => (int)$page,
-					'pages' => $totalPages,
-					'total' => $filteredTotalImages,
+					'page' => $page,
+					'pages' => (int)ceil($filteredTotal / $limit),
+					'total' => $filteredTotal,
 					'limit' => $limit,
 					'start' => $offset + 1,
-					'end' => min($offset + $limit, $filteredTotalImages),
+					'end' => min($offset + $limit, $filteredTotal),
 				],
 				'totals' => [
-					'unsaved' => $totalUnsaved,
-					'saved' => $totalSaved,
-					'total' => $originalTotalImages,
+					'unsaved' => $aggregates['totalUnsaved'],
+					'saved' => $aggregates['totalSaved'],
+					'total' => count($index->entries()),
 				],
-				'generationStats' => $generationStats,
+				'generationStats' => [
+					'missingCurrent' => $aggregates['missingCurrent'],
+					'missingAny' => $aggregates['missingAny'],
+				],
 			];
 		},
 	],
