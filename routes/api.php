@@ -38,12 +38,18 @@ return [
 				$allowedTemplates = [$allowedTemplates];
 			}
 
+			$ignore = $kirby->option('medienbaecker.alter.ignore');
+			if (is_callable($ignore) === false) {
+				$ignore = null;
+			}
+
 			$language = LanguageContext::fromKirby($kirby);
-			$index = ImageIndex::build($language, $allowedTemplates);
+			$index = ImageIndex::build($language, $allowedTemplates, $ignore);
 			$aggregates = $index->aggregate();
 
 			$filtered = array_values($index->filter($filter));
 			$filteredTotal = count($filtered);
+
 			$offset = ($page - 1) * $limit;
 			$slice = array_slice($filtered, $offset, $limit);
 

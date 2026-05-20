@@ -21,7 +21,7 @@ final class ImageIndex
 		private readonly LanguageContext $language,
 	) {}
 
-	public static function build(LanguageContext $language, ?array $allowedTemplates): self
+	public static function build(LanguageContext $language, ?array $allowedTemplates, ?callable $ignore = null): self
 	{
 		$entries = [];
 		$parents = ['site' => self::siteParent()];
@@ -30,7 +30,7 @@ final class ImageIndex
 
 		if ($site->hasImages() === true) {
 			foreach ($site->images() as $image) {
-				if (self::isAllowed($image, $allowedTemplates) === false) {
+				if (self::isAllowed($image, $allowedTemplates, $ignore) === false) {
 					continue;
 				}
 				$entries[$image->id()] = self::lightEntry($image, 'site', $codes);
@@ -48,7 +48,7 @@ final class ImageIndex
 			}
 
 			foreach ($page->images() as $image) {
-				if (self::isAllowed($image, $allowedTemplates) === false) {
+				if (self::isAllowed($image, $allowedTemplates, $ignore) === false) {
 					continue;
 				}
 				$entries[$image->id()] = self::lightEntry($image, $parentId, $codes);
@@ -191,12 +191,15 @@ final class ImageIndex
 		return $changes ?? $latest;
 	}
 
-	private static function isAllowed(File $image, ?array $allowedTemplates): bool
+	private static function isAllowed(File $image, ?array $allowedTemplates, ?callable $ignore): bool
 	{
-		if ($allowedTemplates === null) {
-			return true;
+		if ($allowedTemplates !== null && in_array($image->template(), $allowedTemplates, true) === false) {
+			return false;
 		}
-		return in_array($image->template(), $allowedTemplates, true);
+		if ($ignore !== null && $ignore($image) === false) {
+			return false;
+		}
+		return true;
 	}
 
 	private static function siteParent(): array

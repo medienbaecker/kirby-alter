@@ -12,6 +12,7 @@ Kirby::plugin('medienbaecker/alter', [
 		'api.key' => null,
 		'api.model' => 'claude-haiku-4-5',
 		'templates' => null,
+		'ignore' => null,
 		'maxLength' => false,
 		'panel.generation' => false,
 		'prompt' => function ($file) {

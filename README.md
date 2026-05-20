@@ -92,6 +92,7 @@ return [
     'api.key' => 'claude-api-key', // Set your Claude API key here
     'api.model' => 'model-id',     // Optional: set a Claude model id/alias
     'templates' => null,           // Optional: restrict to specific file templates (string or array)
+    'ignore' => null,              // Optional: a callback function that returns a boolean
     'prompt' => 'Custom prompt',   // Optional: custom prompt for alt text generation
     'maxLength' => false,          // Optional: set a max length (e.g. 125) for alt texts in the panel counter
     'language' => 'English',       // Optional: output language for non-multilingual sites
