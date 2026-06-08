@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => '替代文字',
 	'medienbaecker.alter.noImages'                 => '找不到圖片',
 	'medienbaecker.alter.noAltText'                => '沒有替代文字',
+	'medienbaecker.alter.decorative'               => '不需要替代文字',
 	'medienbaecker.alter.error'                    => '無法儲存變更',
 	'medienbaecker.alter.image'                    => '圖片',
 	'medienbaecker.alter.images'                   => '圖片',

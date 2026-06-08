@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Teksty alternatywne',
 	'medienbaecker.alter.noImages'                 => 'Nie znaleziono obrazów',
 	'medienbaecker.alter.noAltText'                => 'Brak tekstu alternatywnego',
+	'medienbaecker.alter.decorative'               => 'Nie wymaga tekstu alternatywnego',
 	'medienbaecker.alter.error'                    => 'Nie udało się zapisać zmian',
 	'medienbaecker.alter.image'                    => 'obraz',
 	'medienbaecker.alter.images'                   => 'obrazy',

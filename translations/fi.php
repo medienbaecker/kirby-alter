@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt-tekstit',
 	'medienbaecker.alter.noImages'                 => 'Kuvia ei löytynyt',
 	'medienbaecker.alter.noAltText'                => 'Ei alt-tekstiä',
+	'medienbaecker.alter.decorative'               => 'Ei tarvitse alt-tekstiä',
 	'medienbaecker.alter.error'                    => 'Muutosten tallennus epäonnistui',
 	'medienbaecker.alter.image'                    => 'kuva',
 	'medienbaecker.alter.images'                   => 'kuvat',

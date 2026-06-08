@@ -19,9 +19,10 @@ final class ImageIndex
 		private readonly array $entries,
 		private readonly array $parents,
 		private readonly LanguageContext $language,
+		private readonly bool $allowDecorative = false,
 	) {}
 
-	public static function build(LanguageContext $language, ?array $allowedTemplates, ?callable $ignore = null): self
+	public static function build(LanguageContext $language, ?array $allowedTemplates, ?callable $ignore = null, bool $allowDecorative = false): self
 	{
 		$entries = [];
 		$parents = ['site' => self::siteParent()];
@@ -55,7 +56,7 @@ final class ImageIndex
 			}
 		}
 
-		return new self($entries, $parents, $language);
+		return new self($entries, $parents, $language, $allowDecorative);
 	}
 
 	public function entries(): array
@@ -73,20 +74,23 @@ final class ImageIndex
 		$key = $this->language->key();
 
 		foreach ($this->entries as $entry) {
-			$isEmpty = $entry['effectiveEmptyByLang'][$key] ?? true;
+			$isMissing = $this->isMissing($entry, $key);
 
 			if ($entry['hasChangesByLang'][$key] ?? false) {
 				$totalUnsaved++;
 			}
-			if (trim((string)($entry['latestAltByLang'][$key] ?? '')) !== '') {
+			if (
+				trim((string)($entry['latestAltByLang'][$key] ?? '')) !== ''
+				|| ($this->allowDecorative && ($entry['latestDecorativeByLang'][$key] ?? false))
+			) {
 				$totalSaved++;
 			}
-			if ($isEmpty) {
+			if ($isMissing) {
 				$missingCurrent++;
 			}
 
 			if ($this->language->isMonolang() === true) {
-				if ($isEmpty) {
+				if ($isMissing) {
 					$missingAny++;
 				}
 				continue;
@@ -94,7 +98,7 @@ final class ImageIndex
 
 			$anyMissing = false;
 			foreach ($this->language->multilangCodes as $code) {
-				if ($entry['effectiveEmptyByLang'][$code] ?? true) {
+				if ($this->isMissing($entry, $code)) {
 					$anyMissing = true;
 				}
 				if ($entry['hasChangesByLang'][$code] ?? false) {
@@ -115,13 +119,24 @@ final class ImageIndex
 		);
 	}
 
+	/**
+	 * An (entry, code) is "missing" when its effective alt is empty and
+	 * it is not an enabled decorative image. Decorative counts as done.
+	 */
+	private function isMissing(array $entry, string $code): bool
+	{
+		$empty = $entry['effectiveEmptyByLang'][$code] ?? true;
+		$decorative = $this->allowDecorative && ($entry['effectiveDecorativeByLang'][$code] ?? false);
+		return $empty && !$decorative;
+	}
+
 	public function filter(string $name): array
 	{
 		$key = $this->language->key();
 
 		return match ($name) {
-			'saved'   => array_filter($this->entries, fn($entry) => !($entry['effectiveEmptyByLang'][$key] ?? true)),
-			'missing' => array_filter($this->entries, fn($entry) => $entry['effectiveEmptyByLang'][$key] ?? true),
+			'saved'   => array_filter($this->entries, fn($entry) => !$this->isMissing($entry, $key)),
+			'missing' => array_filter($this->entries, fn($entry) => $this->isMissing($entry, $key)),
 			'unsaved' => array_filter($this->entries, fn($entry) => $entry['hasChangesByLang'][$key] ?? false),
 			default   => $this->entries,
 		};
@@ -151,6 +166,8 @@ final class ImageIndex
 			'filename' => $image->filename(),
 			'alt' => $currentAlt,
 			'altOriginal' => $latestAlt,
+			'decorative' => $light['effectiveDecorativeByLang'][$key] ?? false,
+			'decorativeOriginal' => $light['latestDecorativeByLang'][$key] ?? false,
 			'hasChanges' => $changesAlt !== null && $changesAlt !== $latestAlt,
 			'altByLanguage' => $this->altByLanguageMap($light),
 			'changesPath' => $parent['panelPath'] . '/files/' . $image->filename(),
@@ -270,16 +287,25 @@ final class ImageIndex
 		$changesAltByLang = [];
 		$hasChangesByLang = [];
 		$effectiveEmptyByLang = [];
+		$latestDecorativeByLang = [];
+		$effectiveDecorativeByLang = [];
 
 		foreach ($codes as $code) {
 			$key = (string)$code;
 			$latestAlt = self::readAlt($latest, $code);
 			$changesAlt = self::readChangesAlt($changes, $code);
+			$latestDecorative = self::readDecorative($latest, $code);
+			$changesDecorative = self::readChangesDecorative($changes, $code);
+
+			$altChanged = $changesAlt !== null && $changesAlt !== $latestAlt;
+			$decorativeChanged = $changesDecorative !== null && $changesDecorative !== $latestDecorative;
 
 			$latestAltByLang[$key] = $latestAlt;
 			$changesAltByLang[$key] = $changesAlt;
-			$hasChangesByLang[$key] = $changesAlt !== null && $changesAlt !== $latestAlt;
+			$hasChangesByLang[$key] = $altChanged || $decorativeChanged;
 			$effectiveEmptyByLang[$key] = trim($changesAlt ?? $latestAlt) === '';
+			$latestDecorativeByLang[$key] = $latestDecorative;
+			$effectiveDecorativeByLang[$key] = $changesDecorative ?? $latestDecorative;
 		}
 
 		return [
@@ -290,6 +316,8 @@ final class ImageIndex
 			'changesAltByLang' => $changesAltByLang,
 			'hasChangesByLang' => $hasChangesByLang,
 			'effectiveEmptyByLang' => $effectiveEmptyByLang,
+			'latestDecorativeByLang' => $latestDecorativeByLang,
+			'effectiveDecorativeByLang' => $effectiveDecorativeByLang,
 		];
 	}
 
@@ -324,5 +352,38 @@ final class ImageIndex
 			return null;
 		}
 		return (string)($content['alt'] ?? '');
+	}
+
+	private static function readDecorative(Version $version, ?string $code): bool
+	{
+		try {
+			$content = $code === null ? $version->read() : $version->read($code);
+			return (string)($content['alt_decorative'] ?? '') === 'true';
+		} catch (\Throwable) {
+			return false;
+		}
+	}
+
+	/**
+	 * Null vs explicit key is load-bearing, same as readChangesAlt: only an
+	 * explicit `alt_decorative` key in the changes version counts as an edit.
+	 */
+	private static function readChangesDecorative(Version $version, ?string $code): ?bool
+	{
+		$exists = $code === null ? $version->exists() : $version->exists($code);
+		if ($exists === false) {
+			return null;
+		}
+
+		try {
+			$content = $code === null ? $version->read() : $version->read($code);
+		} catch (\Throwable) {
+			return null;
+		}
+
+		if (is_array($content) === false || array_key_exists('alt_decorative', $content) === false) {
+			return null;
+		}
+		return (string)($content['alt_decorative'] ?? '') === 'true';
 	}
 }

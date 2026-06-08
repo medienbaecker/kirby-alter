@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => '대체 텍스트',
 	'medienbaecker.alter.noImages'                 => '이미지를 찾을 수 없습니다',
 	'medienbaecker.alter.noAltText'                => '대체 텍스트 없음',
+	'medienbaecker.alter.decorative'               => '대체 텍스트가 필요 없음',
 	'medienbaecker.alter.error'                    => '변경 사항을 저장하지 못했습니다',
 	'medienbaecker.alter.image'                    => '이미지',
 	'medienbaecker.alter.images'                   => '이미지',

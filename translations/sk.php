@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt texty',
 	'medienbaecker.alter.noImages'                 => 'Nenašli sa žiadne obrázky',
 	'medienbaecker.alter.noAltText'                => 'Žiadny alt text',
+	'medienbaecker.alter.decorative'               => 'Nepotrebuje alternatívny text',
 	'medienbaecker.alter.error'                    => 'Nepodarilo sa uložiť zmeny',
 	'medienbaecker.alter.image'                    => 'obrázok',
 	'medienbaecker.alter.images'                   => 'obrázky',

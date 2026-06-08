@@ -30,6 +30,7 @@ The plugin provides a custom Panel view for reviewing and managing alt texts of
 - Sections for each page with breadcrumb, image count, and status
 - Save or discard changes per image or in bulk
 - Optional AI generation buttons to draft alt texts for the current list or a single image
+- Optional "Doesn't need alt text" checkbox to mark decorative images as reviewed
 
 If you've overwritten `panel.menu` in your config, make sure to add Alter back:
 
@@ -94,9 +95,10 @@ return [
     'templates' => null,           // Optional: restrict to specific file templates (string or array)
     'ignore' => null,              // Optional: a callback function that returns a boolean
     'prompt' => 'Custom prompt',   // Optional: custom prompt for alt text generation
-    'maxLength' => false,          // Optional: set a max length (e.g. 125) for alt texts in the panel counter
+    'maxLength' => false,          // Optional: max characters (e.g. 125) for Panel counter and generation
     'language' => 'English',       // Optional: output language for non-multilingual sites
     'panel.generation' => false,   // Show AI generation buttons in the Panel (default: CLI-only)
+    'panel.decorative' => false,   // Show a "Doesn't need alt text" checkbox in the Panel
   ]
 ];
 ```
@@ -105,6 +107,10 @@ Enable `panel.generation` to surface “Generate” buttons in the Alter view. A
 
 > [!TIP]
 > Get your Claude API key from the [Anthropic Console](https://console.anthropic.com/).
+
+### "Doesn't need alt text" checkbox
+
+Enable `panel.decorative` to add a "Doesn't need alt text" checkbox to each image. Checking it marks the image as reviewed even when the alt text is empty. This is intended to be used for purely decorative images, which should use an empty `alt=""`. Decorative images then count towards the progress badge and leave the **Missing** filter. The flag is set per language, stored in an `alt_decorative` field.
 
 ### Custom Prompt Configuration
 

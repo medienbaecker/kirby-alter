@@ -15,6 +15,7 @@ Kirby::plugin('medienbaecker/alter', [
 		'ignore' => null,
 		'maxLength' => false,
 		'panel.generation' => false,
+		'panel.decorative' => false,
 		'prompt' => function ($file) {
 			$prompt = 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc.';
 			if ($file->parent() instanceof \Kirby\Cms\Page) {

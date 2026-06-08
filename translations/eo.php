@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt-tekstoj',
 	'medienbaecker.alter.noImages'                 => 'Neniuj bildoj trovitaj',
 	'medienbaecker.alter.noAltText'                => 'Neniu alt-teksto',
+	'medienbaecker.alter.decorative'               => 'Ne bezonas alternativan tekston',
 	'medienbaecker.alter.error'                    => 'Malsukcesis konservi ŝanĝojn',
 	'medienbaecker.alter.image'                    => 'bildo',
 	'medienbaecker.alter.images'                   => 'bildoj',

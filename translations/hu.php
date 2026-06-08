@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt szövegek',
 	'medienbaecker.alter.noImages'                 => 'Nem találhatók képek',
 	'medienbaecker.alter.noAltText'                => 'Nincs alt szöveg',
+	'medienbaecker.alter.decorative'               => 'Nincs szükség alt szövegre',
 	'medienbaecker.alter.error'                    => 'A módosítások mentése nem sikerült',
 	'medienbaecker.alter.image'                    => 'kép',
 	'medienbaecker.alter.images'                   => 'képek',

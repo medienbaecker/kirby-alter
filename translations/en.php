@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt texts',
 	'medienbaecker.alter.noImages'                 => 'No images found',
 	'medienbaecker.alter.noAltText'                => 'No alt text',
+	'medienbaecker.alter.decorative'               => "Doesn't need alt text",
 	'medienbaecker.alter.error'                    => 'Failed to save changes',
 	'medienbaecker.alter.image'                    => 'image',
 	'medienbaecker.alter.images'                   => 'images',

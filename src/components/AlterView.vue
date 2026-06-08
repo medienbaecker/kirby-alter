@@ -146,8 +146,11 @@
 									@mousedown.native="setActiveImage(item.id)"
 									@keydown.native="onAltTextKeydown(item.id, $event)"
 									:placeholder="placeholderFor(item)" :buttons="false" :counter="true"
-									:maxlength="maxLength || null" size="small"
-									:disabled="isImageDisabled(item.id)" />
+									:maxlength="maxLength || null" size="small" :disabled="isImageDisabled(item.id)" />
+								<k-checkbox-input v-if="allowDecorative" class="alter-decorative"
+									:label="$t('medienbaecker.alter.decorative')"
+									:checked="getImageData(item.id).decorative" :disabled="isImageDisabled(item.id)"
+									@input="onDecorativeToggle(item.id, $event)" />
 								<div v-if="
 									!isImageDisabled(item.id) && (shouldShowGenerateButton(item.id) || hasChanges(item.id))
 								" class="k-form-controls">
@@ -195,6 +198,10 @@ export default {
 				enabled: false,
 			}),
 		},
+		allowDecorative: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -215,6 +222,8 @@ export default {
 
 			// Draft autosave (debounced) per image
 			altSaveTimeouts: {},
+			// In-flight decorative draft saves per image
+			decorativeSaves: {},
 
 			// UI state
 			hasLoadedOnce: false,
@@ -578,11 +587,11 @@ export default {
 			const original = this.originalImages[imageId];
 			if (!current || !original) return false;
 
-			return current.alt !== original.alt;
+			return current.alt !== original.alt || current.decorative !== original.decorative;
 		},
 
 		getImageData(imageId) {
-			return this.currentImages[imageId] || { alt: '' };
+			return this.currentImages[imageId] || { alt: '', decorative: false };
 		},
 
 		isImageDisabled(imageId) {
@@ -740,16 +749,14 @@ export default {
 		// Draft autosave (debounced) helpers
 		// ---------------------------------------------------------------------
 
-		async saveAltDraft(imageId) {
+		async saveDraft(imageId, field, value) {
 			const image = this.getImageById(imageId);
 			if (!image) return;
-
-			const value = (this.currentImages[imageId]?.alt ?? '').trim();
 
 			try {
 				const resp = await this.$api.post('alter/update', {
 					imageId: image.id,
-					field: 'alt',
+					field,
 					value,
 				});
 
@@ -762,6 +769,11 @@ export default {
 				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
 				console.error('Draft save failed', e);
 			}
+		},
+
+		async saveAltDraft(imageId) {
+			const value = (this.currentImages[imageId]?.alt ?? '').trim();
+			await this.saveDraft(imageId, 'alt', value);
 		},
 
 		scheduleAltDraftSave(imageId) {
@@ -783,16 +795,17 @@ export default {
 				(id) => this.altSaveTimeouts[id]
 			);
 
-			if (ids.length === 0) return;
-
 			// Cancel pending timeouts
 			for (const id of ids) {
 				clearTimeout(this.altSaveTimeouts[id]);
 				this.altSaveTimeouts[id] = null;
 			}
 
-			// Persist immediately
-			await Promise.all(ids.map((id) => this.saveAltDraft(id)));
+			// Persist pending alt drafts and any in-flight decorative saves
+			await Promise.all([
+				...ids.map((id) => this.saveAltDraft(id)),
+				...Object.values(this.decorativeSaves).filter(Boolean),
+			]);
 		},
 
 		async flushAltDraftSaveFor(imageId) {
@@ -803,6 +816,11 @@ export default {
 			this.altSaveTimeouts[imageId] = null;
 
 			await this.saveAltDraft(imageId);
+		},
+
+		async flushDecorativeSaveFor(imageId) {
+			const save = this.decorativeSaves?.[imageId];
+			if (save) await save;
 		},
 
 		// ---------------------------------------------------------------------
@@ -1072,6 +1090,28 @@ export default {
 			}
 		},
 
+		onDecorativeToggle(imageId, checked) {
+			const current = this.currentImages[imageId];
+			if (!current) return;
+
+			const wasChanged = this.hasChanges(imageId);
+
+			this.$set(current, 'decorative', checked === true);
+
+			const isChanged = this.hasChanges(imageId);
+			this.updateUnsavedTotals(wasChanged, isChanged);
+
+			// Persist immediately (discrete event, no debounce), tracking the request
+			// so save/discard/navigation can await it before committing.
+			const save = this.saveDraft(imageId, 'decorative', checked === true ? 'true' : '');
+			this.decorativeSaves[imageId] = save;
+			save.finally(() => {
+				if (this.decorativeSaves[imageId] === save) {
+					this.decorativeSaves[imageId] = null;
+				}
+			});
+		},
+
 		// ---------------------------------------------------------------------
 		// Data loading + formatting
 		// ---------------------------------------------------------------------
@@ -1128,8 +1168,8 @@ export default {
 			this.generatingAll = false;
 
 			this.images.forEach((image) => {
-				const currentData = { alt: image.alt || '' };
-				const originalData = { alt: image.altOriginal || '' };
+				const currentData = { alt: image.alt || '', decorative: image.decorative === true };
+				const originalData = { alt: image.altOriginal || '', decorative: image.decorativeOriginal === true };
 
 				this.$set(this.originalImages, image.id, { ...originalData });
 				this.$set(this.currentImages, image.id, { ...currentData });
@@ -1174,12 +1214,12 @@ export default {
 			}
 		},
 
-		updateSavedTotals(previousAlt, nextAlt) {
-			const hadAlt = previousAlt && previousAlt.trim() !== '';
-			const hasAlt = nextAlt && nextAlt.trim() !== '';
+		updateSavedTotals(previous, next) {
+			const wasDone = (previous.alt && previous.alt.trim() !== '') || previous.decorative === true;
+			const isDone = (next.alt && next.alt.trim() !== '') || next.decorative === true;
 
-			if (hadAlt === hasAlt) return;
-			this.totals.saved += hasAlt ? 1 : -1;
+			if (wasDone === isDone) return;
+			this.totals.saved += isDone ? 1 : -1;
 		},
 
 		// ---------------------------------------------------------------------
@@ -1199,8 +1239,10 @@ export default {
 		},
 
 		async saveImage(imageId) {
-			// Ensure the last keystrokes are persisted to the draft before publishing.
+			// Ensure the last keystrokes and any decorative toggle are persisted
+			// to the draft before publishing.
 			await this.flushAltDraftSaveFor(imageId);
+			await this.flushDecorativeSaveFor(imageId);
 
 			this.$set(this.saving, imageId, true);
 
@@ -1215,6 +1257,7 @@ export default {
 				const response = await this.$api.post('alter/publish', {
 					imageId: image.id,
 					alt: current.alt,
+					decorative: current.decorative === true,
 				});
 
 				if (response.error) {
@@ -1222,10 +1265,10 @@ export default {
 				}
 
 				if (original) {
-					this.updateSavedTotals(original.alt, current.alt);
+					this.updateSavedTotals(original, current);
 				}
 
-				this.$set(this.originalImages, imageId, { alt: current.alt });
+				this.$set(this.originalImages, imageId, { alt: current.alt, decorative: current.decorative });
 				this.updateUnsavedTotals(wasChanged, false);
 
 				this.$panel.notification.success();
@@ -1261,8 +1304,9 @@ export default {
 
 			if (!image || !original || !current) return;
 
-			// Stop any pending draft save for this image
+			// Settle any pending draft saves for this image first
 			await this.flushAltDraftSaveFor(imageId);
+			await this.flushDecorativeSaveFor(imageId);
 
 			const wasChanged = this.hasChanges(imageId);
 
@@ -1329,18 +1373,15 @@ export default {
 }
 
 .k-item .k-form-controls {
+	margin-block-start: auto;
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
 	gap: var(--spacing-2);
 }
 
-.k-item .k-button-group:first-child {
+.k-item .k-form-controls {
 	margin-inline-start: auto;
-}
-
-.k-field-name-alt {
-	flex-grow: 1;
 }
 
 .k-pagination {

@@ -3,6 +3,7 @@
 return [
 	'alter' => function ($kirby) {
 		$panelGeneration = option('medienbaecker.alter.panel.generation', false) === true;
+		$allowDecorative = option('medienbaecker.alter.panel.decorative', false) === true;
 
 		return [
 			'label' => t('medienbaecker.alter.title'),
@@ -12,7 +13,7 @@ return [
 			'views' => [
 				[
 					'pattern' => 'alter/(:num?)',
-					'action' => function ($page = 1) use ($panelGeneration) {
+					'action' => function ($page = 1) use ($panelGeneration, $allowDecorative) {
 						return [
 							'component' => 'k-alter-view',
 							'props' => [
@@ -21,6 +22,7 @@ return [
 								'generation' => [
 									'enabled' => $panelGeneration,
 								],
+								'allowDecorative' => $allowDecorative,
 							],
 						];
 					},

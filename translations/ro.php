@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Texte alternative',
 	'medienbaecker.alter.noImages'                 => 'Nu au fost găsite imagini',
 	'medienbaecker.alter.noAltText'                => 'Fără text alternativ',
+	'medienbaecker.alter.decorative'               => 'Nu necesită text alternativ',
 	'medienbaecker.alter.error'                    => 'Nu s-au putut salva modificările',
 	'medienbaecker.alter.image'                    => 'imagine',
 	'medienbaecker.alter.images'                   => 'imagini',

@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt-textar',
 	'medienbaecker.alter.noImages'                 => 'Engar myndir fundust',
 	'medienbaecker.alter.noAltText'                => 'Enginn alt-texti',
+	'medienbaecker.alter.decorative'               => 'Þarf ekki alt-texta',
 	'medienbaecker.alter.error'                    => 'Mistókst að vista breytingar',
 	'medienbaecker.alter.image'                    => 'mynd',
 	'medienbaecker.alter.images'                   => 'myndir',

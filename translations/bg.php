@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt-текстове',
 	'medienbaecker.alter.noImages'                 => 'Няма намерени изображения',
 	'medienbaecker.alter.noAltText'                => 'Няма alt-текст',
+	'medienbaecker.alter.decorative'               => 'Не изисква алтернативен текст',
 	'medienbaecker.alter.error'                    => 'Неуспешно запазване на промените',
 	'medienbaecker.alter.image'                    => 'изображение',
 	'medienbaecker.alter.images'                   => 'изображения',

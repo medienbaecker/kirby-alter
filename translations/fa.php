@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'متن‌های جایگزین',
 	'medienbaecker.alter.noImages'                 => 'هیچ تصویری پیدا نشد',
 	'medienbaecker.alter.noAltText'                => 'بدون متن جایگزین',
+	'medienbaecker.alter.decorative'               => 'به متن جایگزین نیاز ندارد',
 	'medienbaecker.alter.error'                    => 'ذخیره‌سازی تغییرات ناموفق بود',
 	'medienbaecker.alter.image'                    => 'تصویر',
 	'medienbaecker.alter.images'                   => 'تصاویر',

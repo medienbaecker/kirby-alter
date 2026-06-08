@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt-Texte',
 	'medienbaecker.alter.noImages'                 => 'Keine Bilder gefunden',
 	'medienbaecker.alter.noAltText'                => 'Kein Alt-Text',
+	'medienbaecker.alter.decorative'               => 'Benötigt keinen Alt-Text',
 	'medienbaecker.alter.error'                    => 'Fehler beim Speichern',
 	'medienbaecker.alter.image'                    => 'Bild',
 	'medienbaecker.alter.images'                   => 'Bilder',

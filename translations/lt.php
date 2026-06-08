@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt tekstai',
 	'medienbaecker.alter.noImages'                 => 'Nerasta jokių vaizdų',
 	'medienbaecker.alter.noAltText'                => 'Nėra alt teksto',
+	'medienbaecker.alter.decorative'               => 'Nereikia alternatyvaus teksto',
 	'medienbaecker.alter.error'                    => 'Nepavyko išsaugoti pakeitimų',
 	'medienbaecker.alter.image'                    => 'vaizdas',
 	'medienbaecker.alter.images'                   => 'vaizdai',

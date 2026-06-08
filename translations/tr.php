@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt metinler',
 	'medienbaecker.alter.noImages'                 => 'Görsel bulunamadı',
 	'medienbaecker.alter.noAltText'                => 'Alt metin yok',
+	'medienbaecker.alter.decorative'               => 'Alt metin gerekmez',
 	'medienbaecker.alter.error'                    => 'Değişiklikler kaydedilemedi',
 	'medienbaecker.alter.image'                    => 'görsel',
 	'medienbaecker.alter.images'                   => 'görseller',

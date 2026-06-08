@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Εναλλακτικά κείμενα',
 	'medienbaecker.alter.noImages'                 => 'Δεν βρέθηκαν εικόνες',
 	'medienbaecker.alter.noAltText'                => 'Χωρίς εναλλακτικό κείμενο',
+	'medienbaecker.alter.decorative'               => 'Δεν χρειάζεται εναλλακτικό κείμενο',
 	'medienbaecker.alter.error'                    => 'Αποτυχία αποθήκευσης αλλαγών',
 	'medienbaecker.alter.image'                    => 'εικόνα',
 	'medienbaecker.alter.images'                   => 'εικόνες',

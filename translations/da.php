@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt-tekster',
 	'medienbaecker.alter.noImages'                 => 'Ingen billeder fundet',
 	'medienbaecker.alter.noAltText'                => 'Ingen alt-tekst',
+	'medienbaecker.alter.decorative'               => 'Behøver ikke alt-tekst',
 	'medienbaecker.alter.error'                    => 'Kunne ikke gemme ændringer',
 	'medienbaecker.alter.image'                    => 'billede',
 	'medienbaecker.alter.images'                   => 'billeder',

@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt tekstovi',
 	'medienbaecker.alter.noImages'                 => 'Nema pronađenih slika',
 	'medienbaecker.alter.noAltText'                => 'Nema alt teksta',
+	'medienbaecker.alter.decorative'               => 'Ne zahteva alt tekst',
 	'medienbaecker.alter.error'                    => 'Neuspešno čuvanje izmena',
 	'medienbaecker.alter.image'                    => 'slika',
 	'medienbaecker.alter.images'                   => 'slike',

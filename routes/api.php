@@ -22,6 +22,10 @@ $versionContentArray = static function ($version, ?string $code): array {
 	}
 };
 
+$toBool = static function ($value): bool {
+	return in_array($value, [true, 1, '1', 'true'], true);
+};
+
 return [
 	[
 		'pattern' => 'alter/images',
@@ -44,7 +48,7 @@ return [
 			}
 
 			$language = LanguageContext::fromKirby($kirby);
-			$index = ImageIndex::build($language, $allowedTemplates, $ignore);
+			$index = ImageIndex::build($language, $allowedTemplates, $ignore, option('medienbaecker.alter.panel.decorative', false) === true);
 			$aggregates = $index->aggregate();
 
 			$filtered = array_values($index->filter($filter));
@@ -84,7 +88,7 @@ return [
 	[
 		'pattern' => 'alter/generate',
 		'method' => 'POST',
-		'action' => function () use ($versionExists, $versionContentArray) {
+		'action' => function () use ($versionExists, $versionContentArray, $toBool) {
 			$user = kirby()->user();
 			if (!$user) {
 				throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
@@ -107,7 +111,7 @@ return [
 				$languageMode = 'current';
 			}
 			$autoSelect = $body->get('autoSelect', false);
-			$autoSelect = in_array($autoSelect, [true, 1, '1', 'true'], true);
+			$autoSelect = $toBool($autoSelect);
 			$imageIds = $body->get('imageIds', []);
 
 			if (empty($imageIds)) {
@@ -249,7 +253,7 @@ return [
 	[
 		'pattern' => 'alter/publish',
 		'method'  => 'POST',
-		'action'  => function () {
+		'action'  => function () use ($toBool) {
 			$user = kirby()->user();
 			if (!$user) {
 				throw new PermissionException(t('medienbaecker.alter.notAuthenticated'));
@@ -258,6 +262,7 @@ return [
 			$request = kirby()->request();
 			$imageId = $request->body()->get('imageId');
 			$alt     = (string)($request->body()->get('alt') ?? '');
+			$decorative = $toBool($request->body()->get('decorative'));
 
 			$image = kirby()->file($imageId);
 			if (!$image) {
@@ -272,7 +277,10 @@ return [
 			$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
 
 			// 1) Directly update the file with the alt text (publish it)
-			$image = $image->update(['alt' => $alt], $languageCode);
+			$image = $image->update([
+				'alt' => $alt,
+				'alt_decorative' => $decorative ? 'true' : '',
+			], $languageCode);
 
 			// 2) Delete the changes version if it's now identical to latest
 			$changes = $image->version('changes');
@@ -323,6 +331,7 @@ return [
 			$latestContent = $image->version('latest')->read($changesLang) ?? [];
 			$changesContent = $changes->read($changesLang) ?? [];
 			$changesContent['alt'] = $latestContent['alt'] ?? '';
+			$changesContent['alt_decorative'] = $latestContent['alt_decorative'] ?? '';
 			$changes->replace($changesContent, $changesLang);
 
 			// Delete changes if now identical to latest
@@ -336,7 +345,7 @@ return [
 	[
 		'pattern' => 'alter/update',
 		'method' => 'POST',
-		'action' => function () {
+		'action' => function () use ($toBool) {
 			$user = kirby()->user();
 			if (!$user) {
 				return ['error' => t('medienbaecker.alter.notAuthenticated')];
@@ -347,8 +356,19 @@ return [
 			$field = $request->body()->get('field');
 			$value = $request->body()->get('value');
 
-			if ($field !== 'alt') {
+			$contentKey = match ($field) {
+				'alt' => 'alt',
+				'decorative' => 'alt_decorative',
+				default => null,
+			};
+
+			if ($contentKey === null) {
 				return ['error' => t('medienbaecker.alter.invalidField')];
+			}
+
+			// Decorative is a boolean stored as 'true' / ''
+			if ($field === 'decorative') {
+				$value = $toBool($value) ? 'true' : '';
 			}
 
 			try {
@@ -380,7 +400,7 @@ return [
 						? ($image->version('latest')->read() ?? [])
 						: ($image->version('latest')->read($languageCode) ?? []);
 					$changesContent = is_array($latestContent) ? $latestContent : [];
-					$changesContent['alt'] = $value;
+					$changesContent[$contentKey] = $value;
 					if ($languageCode === null) {
 						$changes->create($changesContent);
 					} else {
@@ -390,7 +410,7 @@ return [
 					$changesContent = $languageCode === null
 						? ($changes->read() ?? [])
 						: ($changes->read($languageCode) ?? []);
-					$changesContent['alt'] = $value;
+					$changesContent[$contentKey] = $value;
 					if ($languageCode === null) {
 						$changes->replace($changesContent);
 					} else {

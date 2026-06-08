@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Textos alternatius',
 	'medienbaecker.alter.noImages'                 => 'No s\'han trobat imatges',
 	'medienbaecker.alter.noAltText'                => 'Sense text alternatiu',
+	'medienbaecker.alter.decorative'               => 'No necessita text alternatiu',
 	'medienbaecker.alter.error'                    => 'No s\'han pogut desar els canvis',
 	'medienbaecker.alter.image'                    => 'imatge',
 	'medienbaecker.alter.images'                   => 'imatges',

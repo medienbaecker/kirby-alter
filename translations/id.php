@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Teks alternatif',
 	'medienbaecker.alter.noImages'                 => 'Tidak ada gambar ditemukan',
 	'medienbaecker.alter.noAltText'                => 'Tidak ada teks alt',
+	'medienbaecker.alter.decorative'               => 'Tidak memerlukan teks alt',
 	'medienbaecker.alter.error'                    => 'Gagal menyimpan perubahan',
 	'medienbaecker.alter.image'                    => 'gambar',
 	'medienbaecker.alter.images'                   => 'gambar',

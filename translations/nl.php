@@ -4,6 +4,7 @@ return array(
 	'medienbaecker.alter.title'                    => 'Alt-teksten',
 	'medienbaecker.alter.noImages'                 => 'Geen afbeeldingen gevonden',
 	'medienbaecker.alter.noAltText'                => 'Geen alt-tekst',
+	'medienbaecker.alter.decorative'               => 'Heeft geen alt-tekst nodig',
 	'medienbaecker.alter.error'                    => 'Wijzigingen konden niet worden opgeslagen',
 	'medienbaecker.alter.image'                    => 'afbeelding',
 	'medienbaecker.alter.images'                   => 'afbeeldingen',
