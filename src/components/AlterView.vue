@@ -1292,9 +1292,9 @@ export default {
 
 			if (changedImages.length === 0) return;
 
-			await Promise.all(
-				changedImages.map((imageId) => this.saveImage(imageId))
-			);
+			for (const imageId of changedImages) {
+				await this.saveImage(imageId);
+			}
 		},
 
 		async discardImage(imageId) {
