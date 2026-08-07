@@ -164,6 +164,7 @@ final class ImageIndex
 			'url' => $image->url(),
 			'thumbUrl' => $image->resize(500, 500)->url(),
 			'filename' => $image->filename(),
+			'supported' => Generator::isSupported($image),
 			'alt' => $currentAlt,
 			'altOriginal' => $latestAlt,
 			'decorative' => $light['effectiveDecorativeByLang'][$key] ?? false,

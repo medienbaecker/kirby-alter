@@ -601,6 +601,7 @@ export default {
 
 		shouldShowGenerateButton(imageId) {
 			if (this.panelGenerationEnabled !== true) return false;
+			if (this.getImageById(imageId)?.supported === false) return false;
 			const current = this.currentImages?.[imageId]?.alt ?? '';
 
 			const currentEmpty = String(current).trim().length === 0;
