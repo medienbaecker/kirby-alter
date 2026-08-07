@@ -126,6 +126,15 @@ class Generator
 				}
 			} while ($running && $status === CURLM_OK);
 
+			// curl_error() stays empty on a multi handle until the transfer's
+			// result has been read off the queue.
+			$transferErrors = [];
+			while ($info = curl_multi_info_read($multi)) {
+				if ($info['result'] !== CURLE_OK) {
+					$transferErrors[(int)$info['handle']] = curl_strerror($info['result']);
+				}
+			}
+
 			$retry = [];
 			$wait  = 0;
 
@@ -133,7 +142,7 @@ class Generator
 				$raw        = curl_multi_getcontent($ch);
 				$httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 				$headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-				$curlError  = curl_error($ch);
+				$curlError  = $transferErrors[(int)$ch] ?? curl_error($ch);
 
 				$headers = substr((string)$raw, 0, $headerSize);
 				$body    = substr((string)$raw, $headerSize);
@@ -143,7 +152,7 @@ class Generator
 
 				$attempts[$key] = ($attempts[$key] ?? 0) + 1;
 
-				if (($curlError || $httpCode === 429 || $httpCode >= 500) && $attempts[$key] < 4) {
+				if (($curlError || $httpCode === 0 || $httpCode === 429 || $httpCode >= 500) && $attempts[$key] < 4) {
 					$retry[$key] = $buildersByKey[$key];
 					$wait = max($wait, $this->retryDelay($headers, $attempts[$key]));
 					continue;
