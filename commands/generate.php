@@ -34,6 +34,12 @@ return [
 			'description' => 'Start from specific page URI (e.g. "blog" or "blog/some-article")',
 			'defaultValue' => null,
 		],
+		'concurrency' => [
+			'longPrefix' => 'concurrency',
+			'description' => 'How many images to generate at once (default 1; raise to speed up large runs)',
+			'defaultValue' => 1,
+			'castTo' => 'int',
+		],
 	],
 	'command' => static function (CLI $cli): void {
 		$generator = new AltTextGenerator($cli);
@@ -60,7 +66,7 @@ class AltTextGenerator extends Generator
 
 		parent::__construct([
 			'prompt' => $prompt,
-			'model' => kirby()->option('medienbaecker.alter.api.model', kirby()->option('medienbaecker.alter.model', 'claude-haiku-4-5')),
+			'model' => kirby()->option('medienbaecker.alter.api.model'),
 			'apiKey' => kirby()->option('medienbaecker.alter.api.key', kirby()->option('medienbaecker.alter.apiKey')),
 			'maxLength' => kirby()->option('medienbaecker.alter.maxLength', false),
 		]);
@@ -70,13 +76,17 @@ class AltTextGenerator extends Generator
 			'dryRun' => $cli->arg('dry-run'),
 			'verbose' => $cli->arg('verbose'),
 			'pageFilter' => $cli->arg('page'),
+			'concurrency' => max(1, (int)$cli->arg('concurrency')),
 		];
 	}
 
 	protected function onApiCall(): void
 	{
 		$this->apiCallCount++;
-		usleep(500000);
+
+		if ($this->activeConcurrency <= 1) {
+			usleep(500000);
+		}
 	}
 
 	/**
@@ -403,6 +413,8 @@ class AltTextGenerator extends Generator
 			return $a['firstOrder'] - $b['firstOrder'];
 		});
 
+		$this->prefetchAltTexts($imagesByHash, $languages);
+
 		// Process by language to avoid immutable object issues
 		foreach ($languages as $language) {
 			$languageCode = $language?->code();
@@ -479,6 +491,71 @@ class AltTextGenerator extends Generator
 		$this->uniqueImagesProcessed = $uniqueImagesProcessed;
 	}
 
+	private function prefetchAltTexts(array $imagesByHash, array $languages): void
+	{
+		$concurrency = $this->cliConfig['concurrency'];
+
+		if ($concurrency <= 1 || $languages === []) {
+			return;
+		}
+
+		$language = reset($languages);
+
+		if ($language !== null && $language->isDefault() !== true) {
+			return;
+		}
+
+		$languageCode = $language?->code();
+		$allLanguages = kirby()->multilang() ? kirby()->languages()->values() : [];
+		$pending = [];
+
+		foreach ($imagesByHash as $hash => $hashData) {
+			$instances = $hashData['instances'];
+			$plan = $this->planFor($instances, $languageCode, $language, $allLanguages);
+
+			if ($plan['action'] === 'generate') {
+				$pending[$hash . '_' . ($languageCode ?? 'default')] = $instances[0]['image'];
+			}
+		}
+
+		if ($pending === []) {
+			return;
+		}
+
+		$total = count($pending);
+		$this->cli->out('');
+		$this->cli->bold()->cyan()->out('Generating ' . $total . ' alt texts, ' . $concurrency . ' at a time...');
+
+		$done = 0;
+		$results = $this->generateAltTextBatch(
+			$pending,
+			$language?->name(),
+			$concurrency,
+			function () use (&$done, $total) {
+				$done++;
+				$this->cli->inline("\r  " . $done . '/' . $total . ' ');
+			}
+		);
+
+		$failed = 0;
+
+		foreach ($results as $cacheKey => $result) {
+			if ($result instanceof \Throwable) {
+				$failed++;
+				continue;
+			}
+			$this->altTextCache[$cacheKey] = ['text' => $result, 'source' => 'generated from image'];
+		}
+
+		$this->cli->out('');
+
+		if ($failed > 0) {
+			$this->cli->yellow()->out(
+				'  ' . $failed . ' of ' . $total . ' failed here and will be retried one at a time below'
+			);
+		}
+	}
+
 	private function generateOrGetAltText($image, string $hash, $language, array $instances, array $allLanguages): ?array
 	{
 		$languageCode = $language?->code();
@@ -488,24 +565,54 @@ class AltTextGenerator extends Generator
 			return $this->altTextCache[$cacheKey];
 		}
 
-		// First, search ALL instances for existing alt text in this language
+		$plan = $this->planFor($instances, $languageCode, $language, $allLanguages);
+
+		switch ($plan['action']) {
+			case 'skip':
+				return null;
+
+			case 'copy':
+				$result = ['text' => $plan['text'], 'source' => 'copied from existing'];
+				break;
+
+			case 'translate':
+				$altText = $this->translateForLanguage($image, $hash, $language, $instances);
+				$result = ['text' => $altText, 'source' => 'translated from ' . kirby()->defaultLanguage()->name()];
+				break;
+
+			case 'translate-existing':
+				$altText = $this->translateAltText($plan['text'], $language->name());
+				$result = ['text' => $altText, 'source' => 'translated from existing alt'];
+				break;
+
+			default:
+				$altText = $this->generateFromImage($image, $language->name());
+				$result = ['text' => $altText, 'source' => 'generated from image'];
+		}
+
+		$this->altTextCache[$cacheKey] = $result;
+		return $result;
+	}
+
+	/**
+	 * The single decision about what a hash group needs, so the concurrent
+	 * prefetch and the sequential pass can never disagree about it.
+	 */
+	private function planFor(array $instances, ?string $languageCode, $language, array $allLanguages): array
+	{
 		$existingAltText = null;
 		foreach ($instances as $instanceData) {
 			$existingAlt = $this->getAltTextForLanguage($instanceData['image'], $languageCode);
 			if ($existingAlt && $existingAlt->isNotEmpty()) {
 				$existingAltText = $existingAlt->value();
-				break; // Found existing alt text, use it
+				break;
 			}
 		}
 
-		// If existing alt text is found and not overwriting, use it
 		if ($existingAltText && !$this->cliConfig['overwrite']) {
-			$result = ['text' => $existingAltText, 'source' => 'copied from existing'];
-			$this->altTextCache[$cacheKey] = $result;
-			return $result;
+			return ['action' => 'copy', 'text' => $existingAltText];
 		}
 
-		// Only generate if at least one instance should be autofilled
 		$needsProcessing = false;
 		foreach ($instances as $instanceData) {
 			if ($this->cliConfig['overwrite'] || $this->shouldAutofillAlt($instanceData['image'], $languageCode)) {
@@ -515,27 +622,19 @@ class AltTextGenerator extends Generator
 		}
 
 		if (!$needsProcessing) {
-			return null; // nothing to do for this language
+			return ['action' => 'skip'];
 		}
 
-		// Generate or translate new alt text
 		if ($language && !$language->isDefault()) {
-			$altText = $this->translateForLanguage($image, $hash, $language, $instances);
-			$result = ['text' => $altText, 'source' => 'translated from ' . kirby()->defaultLanguage()->name()];
-		} else {
-			// Default language path: if another language already has alt, prefer translating it
-			$existingOtherAlt = $this->findAltInOtherLanguages($instances, $allLanguages, $language);
-			if ($existingOtherAlt) {
-				$altText = $this->translateAltText($existingOtherAlt, $language->name());
-				$result = ['text' => $altText, 'source' => 'translated from existing alt'];
-			} else {
-				$altText = $this->generateFromImage($image, $language->name());
-				$result = ['text' => $altText, 'source' => 'generated from image'];
-			}
+			return ['action' => 'translate'];
 		}
 
-		$this->altTextCache[$cacheKey] = $result;
-		return $result;
+		$existingOtherAlt = $this->findAltInOtherLanguages($instances, $allLanguages, $language);
+		if ($existingOtherAlt) {
+			return ['action' => 'translate-existing', 'text' => $existingOtherAlt];
+		}
+
+		return ['action' => 'generate'];
 	}
 
 	private function generateFromImage($image, ?string $language = null): string
@@ -556,6 +655,12 @@ class AltTextGenerator extends Generator
 			$code = $language->code();
 
 			foreach ($instances as $instanceData) {
+				// Kirby falls back to the default language when a translation is
+				// missing, so an unsaved language would otherwise look translated.
+				if ($this->versionExists($instanceData['image']->version('latest'), $code) !== true) {
+					continue;
+				}
+
 				$existingAlt = $this->getAltTextForLanguage($instanceData['image'], $code);
 				if ($existingAlt) {
 					$value = method_exists($existingAlt, 'isNotEmpty')
@@ -574,17 +679,18 @@ class AltTextGenerator extends Generator
 
 	private function translateForLanguage($image, string $hash, $language, array $instances): string
 	{
-		$defaultCacheKey = $hash . '_default';
-		$defaultAltText = $this->altTextCache[$defaultCacheKey] ?? null;
+		$defaultLanguageCode = kirby()->defaultLanguage()->code();
+		$defaultCacheKey = $hash . '_' . ($defaultLanguageCode ?? 'default');
+
+		$defaultAltText = $this->altTextCache[$defaultCacheKey]['text'] ?? null;
 
 		if (!$defaultAltText) {
 			// Search ALL instances for existing default language alt text
-			$defaultLanguageCode = kirby()->defaultLanguage()->code();
 			foreach ($instances as $instanceData) {
 				$defaultAlt = $this->getAltTextForLanguage($instanceData['image'], $defaultLanguageCode);
 				if ($defaultAlt && $defaultAlt->isNotEmpty()) {
 					$defaultAltText = $defaultAlt->value();
-					$this->altTextCache[$defaultCacheKey] = $defaultAltText;
+					$this->altTextCache[$defaultCacheKey] = ['text' => $defaultAltText, 'source' => 'copied from existing'];
 					break;
 				}
 			}
@@ -592,7 +698,7 @@ class AltTextGenerator extends Generator
 			// If still no default alt text found, generate it
 			if (!$defaultAltText) {
 				$defaultAltText = $this->generateFromImage($image, kirby()->defaultLanguage()->name());
-				$this->altTextCache[$defaultCacheKey] = $defaultAltText;
+				$this->altTextCache[$defaultCacheKey] = ['text' => $defaultAltText, 'source' => 'generated from image'];
 
 				// Store the default language as draft (alt-only smart write)
 				$image = $this->updateImageAltText($image, $defaultAltText, $defaultLanguageCode);

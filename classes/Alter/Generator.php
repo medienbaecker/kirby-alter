@@ -17,21 +17,19 @@ class Generator
 	protected string $model;
 	protected $prompt;
 	protected $maxLength;
+	protected int $activeConcurrency = 1;
 
 	public function __construct(array $config)
 	{
 		$this->apiKey = (string)($config['apiKey'] ?? '');
-		$this->model = (string)($config['model'] ?? 'claude-haiku-4-5');
+		$this->model = (string)($config['model'] ?? 'claude-sonnet-5');
 		$this->prompt = $config['prompt'] ?? null;
 		$this->maxLength = $config['maxLength'] ?? false;
 	}
 
-	protected function callClaude(array $requestData): string
+	protected function curlOptions(array $requestData, int $timeout = 30): array
 	{
-		$this->onApiCall();
-
-		$ch = curl_init('https://api.anthropic.com/v1/messages');
-		curl_setopt_array($ch, [
+		return [
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_POST => true,
 			CURLOPT_POSTFIELDS => json_encode($requestData),
@@ -40,30 +38,179 @@ class Generator
 				'x-api-key: ' . $this->apiKey,
 				'anthropic-version: 2023-06-01',
 			],
-			CURLOPT_TIMEOUT => 30,
-		]);
+			CURLOPT_TIMEOUT => $timeout,
+		];
+	}
 
-		$response = curl_exec($ch);
-		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$curlError = curl_error($ch);
-		unset($ch);
+	protected function callClaude(array $requestData): string
+	{
+		$results = $this->callClaudeMulti(['request' => fn () => $requestData], 1, null, 30);
+		$result  = $results['request'];
 
-		if ($curlError) {
-			throw new \Exception('cURL error: ' . $curlError);
+		if ($result instanceof \Throwable) {
+			throw $result;
 		}
 
+		return $result;
+	}
+
+	protected static function parseResponse(?string $response, int $httpCode): string
+	{
 		if ($httpCode !== 200) {
-			$error = json_decode($response, true);
+			$error = json_decode((string)$response, true);
 			throw new \Exception('Claude API error (HTTP ' . $httpCode . '): ' . ($error['error']['message'] ?? 'Unknown error'));
 		}
 
-		$result = json_decode($response, true);
+		$result = json_decode((string)$response, true);
 
-		if (!isset($result['content'][0]['text'])) {
+		$text = null;
+
+		foreach ($result['content'] ?? [] as $block) {
+			if (($block['type'] ?? null) === 'text') {
+				$text = $block['text'];
+				break;
+			}
+		}
+
+		if ($text === null) {
 			throw new \Exception('Unexpected API response format');
 		}
 
-		return trim($result['content'][0]['text'], '"\'');
+		return static::unwrapQuotes(trim($text));
+	}
+
+	/**
+	 * @param array<string, callable> $buildersByKey Each builder returns the request body, and is
+	 *        only called when its batch runs so payloads never all exist at once.
+	 * @return array<string, string|\Throwable> Alt text per key, or that key's failure.
+	 */
+	protected function callClaudeMulti(array $buildersByKey, int $concurrency, ?callable $onResult = null, int $timeout = 120): array
+	{
+		$queue    = $buildersByKey;
+		$attempts = [];
+		$results  = [];
+
+		$this->activeConcurrency = max(1, $concurrency);
+
+		while ($queue !== []) {
+			$batch = array_slice($queue, 0, $this->activeConcurrency, true);
+			$queue = array_slice($queue, count($batch), null, true);
+
+			$multi   = curl_multi_init();
+			$handles = [];
+
+			foreach ($batch as $key => $builder) {
+				try {
+					$requestData = $builder();
+				} catch (\Throwable $e) {
+					$results[$key] = $e;
+					if ($onResult !== null) {
+						$onResult($key, $e);
+					}
+					continue;
+				}
+
+				$this->onApiCall();
+
+				$ch = curl_init('https://api.anthropic.com/v1/messages');
+				curl_setopt_array($ch, $this->curlOptions($requestData, $timeout));
+				curl_setopt($ch, CURLOPT_HEADER, true);
+				curl_multi_add_handle($multi, $ch);
+				$handles[$key] = $ch;
+			}
+
+			do {
+				$status = curl_multi_exec($multi, $running);
+				if ($running) {
+					curl_multi_select($multi, 1.0);
+				}
+			} while ($running && $status === CURLM_OK);
+
+			$retry = [];
+			$wait  = 0;
+
+			foreach ($handles as $key => $ch) {
+				$raw        = curl_multi_getcontent($ch);
+				$httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+				$headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+				$curlError  = curl_error($ch);
+
+				$headers = substr((string)$raw, 0, $headerSize);
+				$body    = substr((string)$raw, $headerSize);
+
+				curl_multi_remove_handle($multi, $ch);
+				curl_close($ch);
+
+				$attempts[$key] = ($attempts[$key] ?? 0) + 1;
+
+				if (($curlError || $httpCode === 429 || $httpCode >= 500) && $attempts[$key] < 4) {
+					$retry[$key] = $buildersByKey[$key];
+					$wait = max($wait, $this->retryDelay($headers, $attempts[$key]));
+					continue;
+				}
+
+				try {
+					if ($curlError) {
+						throw new \Exception('cURL error: ' . $curlError);
+					}
+					$results[$key] = static::parseResponse($body, $httpCode);
+				} catch (\Throwable $e) {
+					$results[$key] = $e;
+				}
+
+				if ($onResult !== null) {
+					$onResult($key, $results[$key]);
+				}
+			}
+
+			curl_multi_close($multi);
+
+			if ($retry !== [] && $wait > 0) {
+				sleep($wait);
+			}
+
+			$queue = $retry + $queue;
+		}
+
+		$this->activeConcurrency = 1;
+
+		return $results;
+	}
+
+	protected function retryDelay(string $headers, int $attempt): int
+	{
+		if (preg_match('/^retry-after:\s*(\d+)/mi', $headers, $m) === 1) {
+			return min(30, (int)$m[1]);
+		}
+
+		return min(30, 2 ** $attempt);
+	}
+
+	protected static function unwrapQuotes(string $text): string
+	{
+		$pairs = ['"' => '"', "'" => "'", '„' => '“', '»' => '«', '“' => '”'];
+
+		foreach ($pairs as $open => $close) {
+			if (str_starts_with($text, $open) && str_ends_with($text, $close)) {
+				return trim(mb_substr($text, mb_strlen($open), -mb_strlen($close)));
+			}
+		}
+
+		// A quote at one end is only stray if it is the single quote in the whole
+		// string. Alt text that transcribes a sign legitimately ends on a quote.
+		foreach (['"', "'"] as $stray) {
+			if (mb_substr_count($text, $stray) !== 1) {
+				continue;
+			}
+			if (str_starts_with($text, $stray)) {
+				return trim(mb_substr($text, 1));
+			}
+			if (str_ends_with($text, $stray)) {
+				return trim(mb_substr($text, 0, -1));
+			}
+		}
+
+		return $text;
 	}
 
 	/**
@@ -98,7 +245,7 @@ class Generator
 		];
 	}
 
-	protected function generateAltText(array $imagePayload, $image, ?string $language = null): string
+	protected function buildAltPrompt($image, ?string $language = null): string
 	{
 		$prompt = $this->prompt;
 
@@ -114,6 +261,16 @@ class Generator
 			$prompt .= ' Keep the alt text under ' . (int)$this->maxLength . ' characters.';
 		}
 
+		return $prompt;
+	}
+
+	protected function generateAltText(array $imagePayload, $image, ?string $language = null): string
+	{
+		return $this->callClaude($this->buildAltRequest($imagePayload, $this->buildAltPrompt($image, $language)));
+	}
+
+	protected function buildAltRequest(array $imagePayload, string $prompt): array
+	{
 		$requestData = [
 			'model' => $this->model,
 			'max_tokens' => 500,
@@ -138,7 +295,21 @@ class Generator
 			],
 		];
 
-		return $this->callClaude($requestData);
+		return $requestData;
+	}
+
+	public function generateAltTextBatch(array $imagesByKey, ?string $language = null, int $concurrency = 8, ?callable $onResult = null): array
+	{
+		$builders = [];
+
+		foreach ($imagesByKey as $key => $image) {
+			$builders[$key] = fn () => $this->buildAltRequest(
+				$this->encodeImage($image),
+				$this->buildAltPrompt($image, $language)
+			);
+		}
+
+		return $this->callClaudeMulti($builders, $concurrency, $onResult);
 	}
 
 	protected function translateAltText(string $text, string $targetLanguage): string
