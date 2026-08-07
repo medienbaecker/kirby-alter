@@ -232,7 +232,7 @@ return [
 
 			$generator = new PanelGenerator([
 				'apiKey' => $apiKey,
-				'model' => option('medienbaecker.alter.api.model', option('medienbaecker.alter.model', 'claude-haiku-4-5')),
+				'model' => option('medienbaecker.alter.api.model'),
 				'prompt' => option('medienbaecker.alter.prompt'),
 				'maxLength' => option('medienbaecker.alter.maxLength', false),
 			]);

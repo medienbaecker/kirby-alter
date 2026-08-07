@@ -10,7 +10,7 @@ require_once __DIR__ . '/classes/Alter/ImageIndex.php';
 Kirby::plugin('medienbaecker/alter', [
 	'options' => [
 		'api.key' => null,
-		'api.model' => 'claude-haiku-4-5',
+		'api.model' => 'claude-sonnet-5',
 		'templates' => null,
 		'ignore' => null,
 		'maxLength' => false,

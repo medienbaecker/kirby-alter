@@ -8,6 +8,7 @@ Edit, generate and review alt texts for images in the [Kirby](https://getkirby.c
 
 - Kirby 5+
 - PHP 8.2+
+- Images in JPEG, PNG, GIF or WebP (the formats the Claude API accepts)
 
 ## Installation
 
@@ -65,6 +66,7 @@ If you've overwritten `panel.menu` in your config, make sure to add Alter back:
 - `--dry-run` - Preview changes without updating files (default: `false`)
 - `--verbose` - Show detailed progress information (default: `false`)
 - `--page` - Start from specific page URI, e.g. `"blog"` (optional)
+- `--concurrency` - How many images to generate at once (default: `1`; raise it to speed up large runs)
 
 > [!WARNING] > `--dry-run` still uses the API (it only skips writing changes).
 
@@ -91,7 +93,7 @@ kirby alter:generate --page "blog/my-article" --overwrite
 return [
   'medienbaecker.alter' => [
     'api.key' => 'claude-api-key', // Set your Claude API key here
-    'api.model' => 'model-id',     // Optional: set a Claude model id/alias
+    'api.model' => 'model-id',     // Optional: Claude model id/alias (default: claude-sonnet-5)
     'templates' => null,           // Optional: restrict to specific file templates (string or array)
     'ignore' => null,              // Optional: a callback function that returns a boolean
     'prompt' => 'Custom prompt',   // Optional: custom prompt for alt text generation
