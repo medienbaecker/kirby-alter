@@ -643,6 +643,12 @@ class AltTextGenerator extends Generator
 		return $this->generateAltText($imagePayload, $image, $language);
 	}
 
+	private function hasTranslation($image, ?string $languageCode): bool
+	{
+		return $this->versionExists($image->version('changes'), $languageCode)
+			|| $this->versionExists($image->version('latest'), $languageCode);
+	}
+
 	private function findAltInOtherLanguages(array $instances, array $languages, $targetLanguage): ?string
 	{
 		$targetCode = $targetLanguage?->code();
@@ -657,7 +663,8 @@ class AltTextGenerator extends Generator
 			foreach ($instances as $instanceData) {
 				// Kirby falls back to the default language when a translation is
 				// missing, so an unsaved language would otherwise look translated.
-				if ($this->versionExists($instanceData['image']->version('latest'), $code) !== true) {
+				// Drafts count: getAltTextForLanguage() prefers them over latest.
+				if ($this->hasTranslation($instanceData['image'], $code) !== true) {
 					continue;
 				}
 
