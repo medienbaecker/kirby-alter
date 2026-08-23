@@ -1,35 +1,35 @@
 {
-    "name": "medienbaecker/kirby-alter",
-    "license": "MIT",
-    "type": "kirby-plugin",
-    "version": "2.3.0",
-    "authors": [
-        {
-            "name": "Thomas Günther",
-            "email": "mail@medienbaecker.com"
-        }
-    ],
-    "require": {
-        "php": "^8.2",
-        "getkirby/composer-installer": "^1.2"
-    },
-    "config": {
-        "allow-plugins": {
-            "getkirby/composer-installer": true
-        }
-    },
-    "archive": {
-        "exclude": [
-            ".DS_Store",
-            ".editorconfig",
-            ".gitattributes",
-            ".gitignore",
-            "composer.lock",
-            "node_modules/",
-            "package-lock.json",
-            "package.json",
-            "src/",
-            "vendor/"
-        ]
-    }
+	"name": "medienbaecker/kirby-alter",
+	"license": "MIT",
+	"type": "kirby-plugin",
+	"version": "2.3.1",
+	"authors": [
+		{
+			"name": "Thomas Günther",
+			"email": "mail@medienbaecker.com"
+		}
+	],
+	"require": {
+		"php": "^8.2",
+		"getkirby/composer-installer": "^1.2"
+	},
+	"config": {
+		"allow-plugins": {
+			"getkirby/composer-installer": true
+		}
+	},
+	"archive": {
+		"exclude": [
+			".DS_Store",
+			".editorconfig",
+			".gitattributes",
+			".gitignore",
+			"composer.lock",
+			"node_modules/",
+			"package-lock.json",
+			"package.json",
+			"src/",
+			"vendor/"
+		]
+	}
 }
