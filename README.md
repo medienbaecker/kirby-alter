@@ -96,6 +96,7 @@ return [
     'api.model' => 'model-id',     // Optional: Claude model id/alias (default: claude-sonnet-5)
     'templates' => null,           // Optional: restrict to specific file templates (string or array)
     'ignore' => null,              // Optional: a callback function that returns a boolean
+    'sortBy' => null,              // Optional: sort pages, e.g. 'date desc'
     'prompt' => 'Custom prompt',   // Optional: custom prompt for alt text generation
     'maxLength' => false,          // Optional: max characters (e.g. 125) for Panel counter and generation
     'language' => 'English',       // Optional: output language for non-multilingual sites
@@ -113,6 +114,29 @@ Enable `panel.generation` to surface “Generate” buttons in the Alter view. A
 ### "Doesn't need alt text" checkbox
 
 Enable `panel.decorative` to add a "Doesn't need alt text" checkbox to each image. Checking it marks the image as reviewed even when the alt text is empty. This is intended to be used for purely decorative images, which should use an empty `alt=""`. Decorative images then count towards the progress badge and leave the **Missing** filter. The flag is set per language, stored in an `alt_decorative` field.
+
+### Sorting
+
+By default, the pages follow the order of your site tree. If you'd rather see your newest content first, for example on a blog, use the `sortBy` option. It works like the [sortBy option in pages sections](https://getkirby.com/docs/reference/panel/sections/pages#sorting):
+
+```php
+'sortBy' => 'date desc'
+```
+
+Pages without a date appear after all dated pages. Add more field/direction pairs to sort them too:
+
+```php
+'sortBy' => 'date desc modified desc'
+```
+
+For full control, pass a function that receives and returns the pages collection:
+
+```php
+'sortBy' => fn($pages) => $pages->sortBy(
+  fn($page) => $page->date()->toDate() ?: $page->modified(),
+  'desc'
+)
+```
 
 ### Custom Prompt Configuration
 

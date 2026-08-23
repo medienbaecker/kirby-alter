@@ -13,6 +13,7 @@ Kirby::plugin('medienbaecker/alter', [
 		'api.model' => 'claude-sonnet-5',
 		'templates' => null,
 		'ignore' => null,
+		'sortBy' => null,
 		'maxLength' => false,
 		'panel.generation' => false,
 		'panel.decorative' => false,

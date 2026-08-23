@@ -47,8 +47,13 @@ return [
 				$ignore = null;
 			}
 
+			$sortBy = $kirby->option('medienbaecker.alter.sortBy');
+			if (is_string($sortBy) === false && $sortBy instanceof \Closure === false) {
+				$sortBy = null;
+			}
+
 			$language = LanguageContext::fromKirby($kirby);
-			$index = ImageIndex::build($language, $allowedTemplates, $ignore, option('medienbaecker.alter.panel.decorative', false) === true);
+			$index = ImageIndex::build($language, $allowedTemplates, $ignore, option('medienbaecker.alter.panel.decorative', false) === true, $sortBy);
 			$aggregates = $index->aggregate();
 
 			$filtered = array_values($index->filter($filter));

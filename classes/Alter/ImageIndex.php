@@ -22,7 +22,7 @@ final class ImageIndex
 		private readonly bool $allowDecorative = false,
 	) {}
 
-	public static function build(LanguageContext $language, ?array $allowedTemplates, ?callable $ignore = null, bool $allowDecorative = false): self
+	public static function build(LanguageContext $language, ?array $allowedTemplates, ?callable $ignore = null, bool $allowDecorative = false, string|\Closure|null $sortBy = null): self
 	{
 		$entries = [];
 		$parents = ['site' => self::siteParent()];
@@ -38,14 +38,22 @@ final class ImageIndex
 			}
 		}
 
-		foreach ($site->index(true) as $page) {
+		$pages = $site->index(true);
+		if ($sortBy instanceof \Closure) {
+			$pages = $sortBy($pages);
+		} elseif ($sortBy !== null) {
+			$pages = $pages->sortBy(...Pages::sortArgs($sortBy));
+		}
+
+		$position = 0;
+		foreach ($pages as $page) {
 			if ($page->hasImages() === false) {
 				continue;
 			}
 
 			$parentId = $page->id();
 			if (isset($parents[$parentId]) === false) {
-				$parents[$parentId] = self::pageParent($page);
+				$parents[$parentId] = self::pageParent($page, $sortBy === null ? null : ++$position);
 			}
 
 			foreach ($page->images() as $image) {
@@ -236,7 +244,7 @@ final class ImageIndex
 		];
 	}
 
-	private static function pageParent(Page $page): array
+	private static function pageParent(Page $page, ?int $position = null): array
 	{
 		$ancestors = $page->parents()->flip();
 		$hasParentDrafts = $page->parents()->filter(fn(Page $parent) => $parent->isDraft())->isNotEmpty();
@@ -256,7 +264,9 @@ final class ImageIndex
 			'status' => $page->status(),
 			'hasParentDrafts' => $hasParentDrafts,
 			'breadcrumbs' => $breadcrumbs,
-			'sortKey' => self::sortKeyFor($page, $ancestors),
+			'sortKey' => $position === null
+				? self::sortKeyFor($page, $ancestors)
+				: sprintf('%06d', $position),
 		];
 	}
 
