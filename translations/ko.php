@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => '생성된 대체 텍스트가 없습니다',
 	'medienbaecker.alter.generate.failed'          => '대체 텍스트를 생성하지 못했습니다',
 	'medienbaecker.alter.generate.disabled'        => '패널 생성이 비활성화되었습니다',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API 키가 없습니다',
+	'medienbaecker.alter.api.key.missing'          => 'API 키가 없습니다',
 	'medienbaecker.alter.filter.all'               => '모든 이미지',
 	'medienbaecker.alter.filter.saved'             => '저장됨',
 	'medienbaecker.alter.filter.unsaved'           => '미저장',

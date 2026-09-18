@@ -2,6 +2,10 @@
 
 use Kirby\Cms\App as Kirby;
 
+require_once __DIR__ . '/classes/Alter/Provider.php';
+require_once __DIR__ . '/classes/Alter/AnthropicProvider.php';
+require_once __DIR__ . '/classes/Alter/CustomProvider.php';
+require_once __DIR__ . '/classes/Alter/OpenAiProvider.php';
 require_once __DIR__ . '/classes/Alter/Generator.php';
 require_once __DIR__ . '/classes/Alter/PanelGenerator.php';
 require_once __DIR__ . '/classes/Alter/LanguageContext.php';
@@ -9,8 +13,11 @@ require_once __DIR__ . '/classes/Alter/ImageIndex.php';
 
 Kirby::plugin('medienbaecker/alter', [
 	'options' => [
+		'api.provider' => 'anthropic',
 		'api.key' => null,
-		'api.model' => 'claude-sonnet-5',
+		'api.model' => null,
+		'api.url' => null,
+		'api.options' => [],
 		'templates' => null,
 		'ignore' => null,
 		'sortBy' => null,

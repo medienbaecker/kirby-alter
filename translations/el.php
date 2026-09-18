@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Δεν δημιουργήθηκε εναλλακτικό κείμενο',
 	'medienbaecker.alter.generate.failed'          => 'Αποτυχία δημιουργίας εναλλακτικού κειμένου',
 	'medienbaecker.alter.generate.disabled'        => 'Η δημιουργία στο Panel είναι απενεργοποιημένη',
-	'medienbaecker.alter.api.key.missing'          => 'Λείπει το κλειδί API του Claude',
+	'medienbaecker.alter.api.key.missing'          => 'Λείπει το κλειδί API',
 	'medienbaecker.alter.filter.all'               => 'Όλες οι εικόνες',
 	'medienbaecker.alter.filter.saved'             => 'Αποθηκευμένα',
 	'medienbaecker.alter.filter.unsaved'           => 'Μη αποθηκευμένα',

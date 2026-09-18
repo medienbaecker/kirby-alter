@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Nie wygenerowano tekstu alternatywnego',
 	'medienbaecker.alter.generate.failed'          => 'Nie udało się wygenerować tekstu alternatywnego',
 	'medienbaecker.alter.generate.disabled'        => 'Generowanie w Panelu jest wyłączone',
-	'medienbaecker.alter.api.key.missing'          => 'Brakuje klucza API Claude',
+	'medienbaecker.alter.api.key.missing'          => 'Brakuje klucza API',
 	'medienbaecker.alter.filter.all'               => 'Wszystkie obrazy',
 	'medienbaecker.alter.filter.saved'             => 'Zapisane',
 	'medienbaecker.alter.filter.unsaved'           => 'Niezapisane',

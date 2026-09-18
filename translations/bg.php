@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Не е генериран alt-текст',
 	'medienbaecker.alter.generate.failed'          => 'Неуспешно генериране на alt-текст',
 	'medienbaecker.alter.generate.disabled'        => 'Генерирането в панела е деактивирано',
-	'medienbaecker.alter.api.key.missing'          => 'Липсва Claude API ключ',
+	'medienbaecker.alter.api.key.missing'          => 'Липсва API ключ',
 	'medienbaecker.alter.filter.all'               => 'Всички изображения',
 	'medienbaecker.alter.filter.saved'             => 'Запазени',
 	'medienbaecker.alter.filter.unsaved'           => 'Незапазени',

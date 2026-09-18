@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Nebyl vygenerován žádný alt text',
 	'medienbaecker.alter.generate.failed'          => 'Alt text se nepodařilo vygenerovat',
 	'medienbaecker.alter.generate.disabled'        => 'Generování v Panelu je vypnuto',
-	'medienbaecker.alter.api.key.missing'          => 'Chybí Claude API klíč',
+	'medienbaecker.alter.api.key.missing'          => 'Chybí API klíč',
 	'medienbaecker.alter.filter.all'               => 'Všechny obrázky',
 	'medienbaecker.alter.filter.saved'             => 'Uložené',
 	'medienbaecker.alter.filter.unsaved'           => 'Neuložené',

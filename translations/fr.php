@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Aucun texte alternatif généré',
 	'medienbaecker.alter.generate.failed'          => 'Impossible de générer le texte alternatif',
 	'medienbaecker.alter.generate.disabled'        => 'La génération dans le Panel est désactivée',
-	'medienbaecker.alter.api.key.missing'          => 'La clé API de Claude est manquante',
+	'medienbaecker.alter.api.key.missing'          => 'La clé API est manquante',
 	'medienbaecker.alter.filter.all'               => 'Toutes les images',
 	'medienbaecker.alter.filter.saved'             => 'Enregistrées',
 	'medienbaecker.alter.filter.unsaved'           => 'Non enregistrées',

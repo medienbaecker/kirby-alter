@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Nem készült alt szöveg',
 	'medienbaecker.alter.generate.failed'          => 'Az alt szöveg generálása nem sikerült',
 	'medienbaecker.alter.generate.disabled'        => 'A generálás a Panelben ki van kapcsolva',
-	'medienbaecker.alter.api.key.missing'          => 'Hiányzik a Claude API kulcs',
+	'medienbaecker.alter.api.key.missing'          => 'Hiányzik az API kulcs',
 	'medienbaecker.alter.filter.all'               => 'Összes kép',
 	'medienbaecker.alter.filter.saved'             => 'Mentett',
 	'medienbaecker.alter.filter.unsaved'           => 'Nem mentett',

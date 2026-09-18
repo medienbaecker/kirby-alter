@@ -21,7 +21,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'No alt text generated',
 	'medienbaecker.alter.generate.failed'          => 'Failed to generate alt text',
 	'medienbaecker.alter.generate.disabled'        => 'Panel generation is disabled',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API key is missing',
+	'medienbaecker.alter.api.key.missing'          => 'API key is missing',
 	'medienbaecker.alter.filter.all'               => 'All images',
 	'medienbaecker.alter.filter.saved'             => 'Saved',
 	'medienbaecker.alter.filter.unsaved'           => 'Unsaved',

@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => '未產生替代文字',
 	'medienbaecker.alter.generate.failed'          => '無法產生替代文字',
 	'medienbaecker.alter.generate.disabled'        => '面板產生功能已停用',
-	'medienbaecker.alter.api.key.missing'          => '缺少 Claude API 金鑰',
+	'medienbaecker.alter.api.key.missing'          => '缺少 API 金鑰',
 	'medienbaecker.alter.filter.all'               => '所有圖片',
 	'medienbaecker.alter.filter.saved'             => '已儲存',
 	'medienbaecker.alter.filter.unsaved'           => '未儲存',

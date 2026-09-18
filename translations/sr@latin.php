@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Nijedan alt tekst nije generisan',
 	'medienbaecker.alter.generate.failed'          => 'Neuspešno generisanje alt teksta',
 	'medienbaecker.alter.generate.disabled'        => 'Generisanje u Panelu je onemogućeno',
-	'medienbaecker.alter.api.key.missing'          => 'Nedostaje Claude API ključ',
+	'medienbaecker.alter.api.key.missing'          => 'Nedostaje API ključ',
 	'medienbaecker.alter.filter.all'               => 'Sve slike',
 	'medienbaecker.alter.filter.saved'             => 'Sačuvano',
 	'medienbaecker.alter.filter.unsaved'           => 'Nesačuvano',

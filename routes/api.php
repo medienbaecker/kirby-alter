@@ -6,6 +6,7 @@ use Medienbaecker\Alter\Generator;
 use Medienbaecker\Alter\ImageIndex;
 use Medienbaecker\Alter\LanguageContext;
 use Medienbaecker\Alter\PanelGenerator;
+use Medienbaecker\Alter\Provider;
 
 $versionExists = static function ($version, ?string $code): bool {
 	return $code === null
@@ -103,8 +104,15 @@ return [
 				throw new PermissionException(t('medienbaecker.alter.generate.disabled'));
 			}
 
-			$apiKey = option('medienbaecker.alter.api.key', option('medienbaecker.alter.apiKey'));
-			if (!$apiKey) {
+			$config = Generator::apiConfig();
+
+			try {
+				$provider = Provider::create($config);
+			} catch (\Throwable $e) {
+				return ['error' => $e->getMessage()];
+			}
+
+			if ($provider->requiresKey() && !$provider->hasKey()) {
 				return ['error' => t('medienbaecker.alter.api.key.missing')];
 			}
 
@@ -235,9 +243,7 @@ return [
 				}
 			}
 
-			$generator = new PanelGenerator([
-				'apiKey' => $apiKey,
-				'model' => option('medienbaecker.alter.api.model'),
+			$generator = new PanelGenerator($config + [
 				'prompt' => option('medienbaecker.alter.prompt'),
 				'maxLength' => option('medienbaecker.alter.maxLength', false),
 			]);

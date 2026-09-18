@@ -4,7 +4,7 @@ use Kirby\CLI\CLI;
 use Medienbaecker\Alter\Generator;
 
 return [
-	'description' => 'Generate alt texts for images using Claude API',
+	'description' => 'Generate alt texts for images using the configured AI provider',
 	'args' => [
 		'prompt' => [
 			'prefix' => 'p',
@@ -64,10 +64,8 @@ class AltTextGenerator extends Generator
 		// Use CLI prompt if provided, otherwise use config option
 		$prompt = $cli->arg('prompt') ?: kirby()->option('medienbaecker.alter.prompt');
 
-		parent::__construct([
+		parent::__construct(Generator::apiConfig() + [
 			'prompt' => $prompt,
-			'model' => kirby()->option('medienbaecker.alter.api.model'),
-			'apiKey' => kirby()->option('medienbaecker.alter.api.key', kirby()->option('medienbaecker.alter.apiKey')),
 			'maxLength' => kirby()->option('medienbaecker.alter.maxLength', false),
 		]);
 
@@ -140,8 +138,8 @@ class AltTextGenerator extends Generator
 
 	private function validateConfig(): void
 	{
-		if (!$this->apiKey) {
-			throw new \Exception('Claude API key is required');
+		if ($this->provider->requiresKey() && !$this->provider->hasKey()) {
+			throw new \Exception('API key is required');
 		}
 	}
 

@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Alt-tekstiä ei luotu',
 	'medienbaecker.alter.generate.failed'          => 'Alt-tekstin luonti epäonnistui',
 	'medienbaecker.alter.generate.disabled'        => 'Generointi Panelissa on pois käytöstä',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API -avain puuttuu',
+	'medienbaecker.alter.api.key.missing'          => 'API-avain puuttuu',
 	'medienbaecker.alter.filter.all'               => 'Kaikki kuvat',
 	'medienbaecker.alter.filter.saved'             => 'Tallennetut',
 	'medienbaecker.alter.filter.unsaved'           => 'Tallentamattomat',

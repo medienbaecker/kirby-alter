@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Geen alt-tekst gegenereerd',
 	'medienbaecker.alter.generate.failed'          => 'Alt-tekst genereren mislukt',
 	'medienbaecker.alter.generate.disabled'        => 'Genereren in het Panel is uitgeschakeld',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API-sleutel ontbreekt',
+	'medienbaecker.alter.api.key.missing'          => 'API-sleutel ontbreekt',
 	'medienbaecker.alter.filter.all'               => 'Alle afbeeldingen',
 	'medienbaecker.alter.filter.saved'             => 'Opgeslagen',
 	'medienbaecker.alter.filter.unsaved'           => 'Niet opgeslagen',

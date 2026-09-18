@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Ingen alt-tekst generert',
 	'medienbaecker.alter.generate.failed'          => 'Kunne ikke generere alt-tekst',
 	'medienbaecker.alter.generate.disabled'        => 'Generering i Panelet er deaktivert',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API-nøkkel mangler',
+	'medienbaecker.alter.api.key.missing'          => 'API-nøkkel mangler',
 	'medienbaecker.alter.filter.all'               => 'Alle bilder',
 	'medienbaecker.alter.filter.saved'             => 'Lagret',
 	'medienbaecker.alter.filter.unsaved'           => 'Ulagret',

@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Nu a fost generat niciun text alternativ',
 	'medienbaecker.alter.generate.failed'          => 'Nu s-a putut genera textul alternativ',
 	'medienbaecker.alter.generate.disabled'        => 'Generarea în Panel este dezactivată',
-	'medienbaecker.alter.api.key.missing'          => 'Lipsește cheia API Claude',
+	'medienbaecker.alter.api.key.missing'          => 'Lipsește cheia API',
 	'medienbaecker.alter.filter.all'               => 'Toate imaginile',
 	'medienbaecker.alter.filter.saved'             => 'Salvate',
 	'medienbaecker.alter.filter.unsaved'           => 'Nesalvate',

@@ -6,25 +6,34 @@ use Kirby\Toolkit\Str;
 
 /**
  * Shared base for Panel and CLI alt-text generation.
- * Contains the Claude API client, image encoding, prompt
+ * Contains the API client, image encoding, prompt
  * construction, and Kirby version helpers.
  */
 class Generator
 {
 	protected const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-	protected string $apiKey;
-	protected string $model;
+	protected Provider $provider;
 	protected $prompt;
 	protected $maxLength;
 	protected int $activeConcurrency = 1;
 
 	public function __construct(array $config)
 	{
-		$this->apiKey = (string)($config['apiKey'] ?? '');
-		$this->model = (string)($config['model'] ?? 'claude-sonnet-5');
+		$this->provider = Provider::create($config);
 		$this->prompt = $config['prompt'] ?? null;
 		$this->maxLength = $config['maxLength'] ?? false;
+	}
+
+	public static function apiConfig(): array
+	{
+		return [
+			'provider' => option('medienbaecker.alter.api.provider'),
+			'apiKey' => option('medienbaecker.alter.api.key', option('medienbaecker.alter.apiKey')),
+			'model' => option('medienbaecker.alter.api.model'),
+			'url' => option('medienbaecker.alter.api.url'),
+			'options' => option('medienbaecker.alter.api.options', []),
+		];
 	}
 
 	protected function curlOptions(array $requestData, int $timeout = 30): array
@@ -33,18 +42,17 @@ class Generator
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_POST => true,
 			CURLOPT_POSTFIELDS => json_encode($requestData),
-			CURLOPT_HTTPHEADER => [
-				'Content-Type: application/json',
-				'x-api-key: ' . $this->apiKey,
-				'anthropic-version: 2023-06-01',
-			],
+			CURLOPT_HTTPHEADER => array_merge(
+				['Content-Type: application/json'],
+				$this->provider->headers()
+			),
 			CURLOPT_TIMEOUT => $timeout,
 		];
 	}
 
-	protected function callClaude(array $requestData): string
+	protected function callApi(array $requestData): string
 	{
-		$results = $this->callClaudeMulti(['request' => fn () => $requestData], 1, null, 30);
+		$results = $this->callApiMulti(['request' => fn () => $requestData], 1, null, 30);
 		$result  = $results['request'];
 
 		if ($result instanceof \Throwable) {
@@ -54,23 +62,20 @@ class Generator
 		return $result;
 	}
 
-	protected static function parseResponse(?string $response, int $httpCode): string
+	protected function parseResponse(?string $response, int $httpCode): string
 	{
+		$decoded = json_decode((string)$response, true);
+		$decoded = is_array($decoded) ? $decoded : null;
+
 		if ($httpCode !== 200) {
-			$error = json_decode((string)$response, true);
-			throw new \Exception('Claude API error (HTTP ' . $httpCode . '): ' . ($error['error']['message'] ?? 'Unknown error'));
+			$message = $decoded !== null
+				? $this->provider->error($decoded)
+				: (trim(substr(strip_tags((string)$response), 0, 200)) ?: 'Unknown error');
+
+			throw new \Exception($this->provider->name() . ' API error (HTTP ' . $httpCode . '): ' . $message);
 		}
 
-		$result = json_decode((string)$response, true);
-
-		$text = null;
-
-		foreach ($result['content'] ?? [] as $block) {
-			if (($block['type'] ?? null) === 'text') {
-				$text = $block['text'];
-				break;
-			}
-		}
+		$text = $this->provider->text($decoded ?? []);
 
 		if ($text === null) {
 			throw new \Exception('Unexpected API response format');
@@ -84,7 +89,7 @@ class Generator
 	 *        only called when its batch runs so payloads never all exist at once.
 	 * @return array<string, string|\Throwable> Alt text per key, or that key's failure.
 	 */
-	protected function callClaudeMulti(array $buildersByKey, int $concurrency, ?callable $onResult = null, int $timeout = 120): array
+	protected function callApiMulti(array $buildersByKey, int $concurrency, ?callable $onResult = null, int $timeout = 120): array
 	{
 		$queue    = $buildersByKey;
 		$attempts = [];
@@ -112,7 +117,7 @@ class Generator
 
 				$this->onApiCall();
 
-				$ch = curl_init('https://api.anthropic.com/v1/messages');
+				$ch = curl_init($this->provider->endpoint());
 				curl_setopt_array($ch, $this->curlOptions($requestData, $timeout));
 				curl_setopt($ch, CURLOPT_HEADER, true);
 				curl_multi_add_handle($multi, $ch);
@@ -162,7 +167,7 @@ class Generator
 					if ($curlError) {
 						throw new \Exception('cURL error: ' . $curlError);
 					}
-					$results[$key] = static::parseResponse($body, $httpCode);
+					$results[$key] = $this->parseResponse($body, $httpCode);
 				} catch (\Throwable $e) {
 					$results[$key] = $e;
 				}
@@ -275,36 +280,12 @@ class Generator
 
 	protected function generateAltText(array $imagePayload, $image, ?string $language = null): string
 	{
-		return $this->callClaude($this->buildAltRequest($imagePayload, $this->buildAltPrompt($image, $language)));
+		return $this->callApi($this->buildAltRequest($imagePayload, $this->buildAltPrompt($image, $language)));
 	}
 
 	protected function buildAltRequest(array $imagePayload, string $prompt): array
 	{
-		$requestData = [
-			'model' => $this->model,
-			'max_tokens' => 500,
-			'messages' => [
-				[
-					'role' => 'user',
-					'content' => [
-						[
-							'type' => 'image',
-							'source' => [
-								'type' => 'base64',
-								'media_type' => $imagePayload['mime'],
-								'data' => $imagePayload['data'],
-							],
-						],
-						[
-							'type' => 'text',
-							'text' => $prompt,
-						],
-					],
-				],
-			],
-		];
-
-		return $requestData;
+		return $this->provider->body($prompt, $imagePayload);
 	}
 
 	public function generateAltTextBatch(array $imagesByKey, ?string $language = null, int $concurrency = 8, ?callable $onResult = null): array
@@ -318,7 +299,7 @@ class Generator
 			);
 		}
 
-		return $this->callClaudeMulti($builders, $concurrency, $onResult);
+		return $this->callApiMulti($builders, $concurrency, $onResult);
 	}
 
 	protected function translateAltText(string $text, string $targetLanguage): string
@@ -329,23 +310,7 @@ class Generator
 			$prompt .= ' Keep the translation under ' . (int)$this->maxLength . ' characters.';
 		}
 
-		$requestData = [
-			'model' => $this->model,
-			'max_tokens' => 500,
-			'messages' => [
-				[
-					'role' => 'user',
-					'content' => [
-						[
-							'type' => 'text',
-							'text' => $prompt,
-						],
-					],
-				],
-			],
-		];
-
-		return $this->callClaude($requestData);
+		return $this->callApi($this->provider->body($prompt));
 	}
 
 	protected function versionExists($version, ?string $languageCode): bool

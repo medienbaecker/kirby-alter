@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'هیچ متن جایگزینی تولید نشد',
 	'medienbaecker.alter.generate.failed'          => 'تولید متن جایگزین ناموفق بود',
 	'medienbaecker.alter.generate.disabled'        => 'تولید در پنل غیرفعال است',
-	'medienbaecker.alter.api.key.missing'          => 'کلید API Claude موجود نیست',
+	'medienbaecker.alter.api.key.missing'          => 'کلید API موجود نیست',
 	'medienbaecker.alter.filter.all'               => 'همه تصاویر',
 	'medienbaecker.alter.filter.saved'             => 'ذخیره‌شده',
 	'medienbaecker.alter.filter.unsaved'           => 'ذخیره‌نشده',

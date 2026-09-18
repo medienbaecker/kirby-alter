@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Alt tekstas nesugeneruotas',
 	'medienbaecker.alter.generate.failed'          => 'Nepavyko sugeneruoti alt teksto',
 	'medienbaecker.alter.generate.disabled'        => 'Generavimas skydelyje išjungtas',
-	'medienbaecker.alter.api.key.missing'          => 'Trūksta Claude API rakto',
+	'medienbaecker.alter.api.key.missing'          => 'Trūksta API rakto',
 	'medienbaecker.alter.filter.all'               => 'Visi vaizdai',
 	'medienbaecker.alter.filter.saved'             => 'Išsaugota',
 	'medienbaecker.alter.filter.unsaved'           => 'Neišsaugota',

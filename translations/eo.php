@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Neniu alt-teksto generita',
 	'medienbaecker.alter.generate.failed'          => 'Malsukcesis generi alt-tekston',
 	'medienbaecker.alter.generate.disabled'        => 'Generado en Panelo estas malŝaltita',
-	'medienbaecker.alter.api.key.missing'          => 'Mankas Claude API-ŝlosilo',
+	'medienbaecker.alter.api.key.missing'          => 'Mankas API-ŝlosilo',
 	'medienbaecker.alter.filter.all'               => 'Ĉiuj bildoj',
 	'medienbaecker.alter.filter.saved'             => 'Konservitaj',
 	'medienbaecker.alter.filter.unsaved'           => 'Nekonservitaj',

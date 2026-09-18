@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Tidak ada teks alt yang dihasilkan',
 	'medienbaecker.alter.generate.failed'          => 'Gagal menghasilkan teks alt',
 	'medienbaecker.alter.generate.disabled'        => 'Generasi di Panel dinonaktifkan',
-	'medienbaecker.alter.api.key.missing'          => 'Kunci API Claude tidak ada',
+	'medienbaecker.alter.api.key.missing'          => 'Kunci API tidak ada',
 	'medienbaecker.alter.filter.all'               => 'Semua gambar',
 	'medienbaecker.alter.filter.saved'             => 'Tersimpan',
 	'medienbaecker.alter.filter.unsaved'           => 'Belum disimpan',

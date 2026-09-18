@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Enginn alt-texti búinn til',
 	'medienbaecker.alter.generate.failed'          => 'Mistókst að búa til alt-texta',
 	'medienbaecker.alter.generate.disabled'        => 'Myndun í Panel er óvirk',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API-lykill vantar',
+	'medienbaecker.alter.api.key.missing'          => 'API-lykill vantar',
 	'medienbaecker.alter.filter.all'               => 'Allar myndir',
 	'medienbaecker.alter.filter.saved'             => 'Vistað',
 	'medienbaecker.alter.filter.unsaved'           => 'Óvistað',

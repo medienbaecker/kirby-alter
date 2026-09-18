@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'No s\'ha generat cap text alternatiu',
 	'medienbaecker.alter.generate.failed'          => 'No s\'ha pogut generar el text alternatiu',
 	'medienbaecker.alter.generate.disabled'        => 'La generació al Panel està desactivada',
-	'medienbaecker.alter.api.key.missing'          => 'Falta la clau API de Claude',
+	'medienbaecker.alter.api.key.missing'          => 'Falta la clau API',
 	'medienbaecker.alter.filter.all'               => 'Totes les imatges',
 	'medienbaecker.alter.filter.saved'             => 'Desades',
 	'medienbaecker.alter.filter.unsaved'           => 'Sense desar',

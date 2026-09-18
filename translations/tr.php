@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Alt metin üretilmedi',
 	'medienbaecker.alter.generate.failed'          => 'Alt metin üretilemedi',
 	'medienbaecker.alter.generate.disabled'        => 'Panel üretimi devre dışı',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API anahtarı eksik',
+	'medienbaecker.alter.api.key.missing'          => 'API anahtarı eksik',
 	'medienbaecker.alter.filter.all'               => 'Tüm görseller',
 	'medienbaecker.alter.filter.saved'             => 'Kaydedilen',
 	'medienbaecker.alter.filter.unsaved'           => 'Kaydedilmemiş',

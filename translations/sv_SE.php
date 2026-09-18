@@ -20,7 +20,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Ingen alt-text genererad',
 	'medienbaecker.alter.generate.failed'          => 'Kunde inte generera alt-text',
 	'medienbaecker.alter.generate.disabled'        => 'Generering i Panelen är inaktiverad',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API-nyckel saknas',
+	'medienbaecker.alter.api.key.missing'          => 'API-nyckel saknas',
 	'medienbaecker.alter.filter.all'               => 'Alla bilder',
 	'medienbaecker.alter.filter.saved'             => 'Sparade',
 	'medienbaecker.alter.filter.unsaved'           => 'Osparade',

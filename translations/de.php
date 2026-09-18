@@ -21,7 +21,7 @@ return array(
 	'medienbaecker.alter.generate.none'            => 'Keine Alt-Texte generiert',
 	'medienbaecker.alter.generate.failed'          => 'Alt-Text konnte nicht generiert werden',
 	'medienbaecker.alter.generate.disabled'        => 'KI-Generierung im Panel ist deaktiviert',
-	'medienbaecker.alter.api.key.missing'          => 'Claude API-Schlüssel fehlt',
+	'medienbaecker.alter.api.key.missing'          => 'API-Schlüssel fehlt',
 	'medienbaecker.alter.filter.all'               => 'Alle Bilder',
 	'medienbaecker.alter.filter.saved'             => 'Gespeichert',
 	'medienbaecker.alter.filter.unsaved'           => 'Ungespeichert',
