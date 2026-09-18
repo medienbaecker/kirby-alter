@@ -20,6 +20,7 @@
 	},
 	"archive": {
 		"exclude": [
+			".github/",
 			".DS_Store",
 			".editorconfig",
 			".gitattributes",
