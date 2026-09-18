@@ -2,7 +2,7 @@
 	"name": "medienbaecker/kirby-alter",
 	"license": "MIT",
 	"type": "kirby-plugin",
-	"version": "2.3.1",
+	"version": "2.4.0-rc.1",
 	"authors": [
 		{
 			"name": "Thomas Günther",
