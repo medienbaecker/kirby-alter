@@ -3,7 +3,7 @@
 		<k-header>
 			{{ $t('medienbaecker.alter.title') }}
 			<template #buttons>
-				<k-button-group class="k-view-buttons">
+				<k-button-group>
 					<div class="k-view-button">
 						<k-button :dropdown="true" icon="filter" variant="filled" size="sm" :responsive="'text'"
 							:text="currentFilterLabel" @click="toggleDropdown('filterDropdown')" />
