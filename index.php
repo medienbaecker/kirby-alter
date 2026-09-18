@@ -13,17 +13,21 @@ require_once __DIR__ . '/classes/Alter/ImageIndex.php';
 
 Kirby::plugin('medienbaecker/alter', [
 	'options' => [
-		'api.provider' => 'anthropic',
-		'api.key' => null,
-		'api.model' => null,
-		'api.url' => null,
-		'api.options' => [],
+		'api' => [
+			'provider' => 'anthropic',
+			'key' => null,
+			'model' => null,
+			'url' => null,
+			'options' => [],
+		],
 		'templates' => null,
 		'ignore' => null,
 		'sortBy' => null,
 		'maxLength' => false,
-		'panel.generation' => false,
-		'panel.decorative' => false,
+		'panel' => [
+			'generation' => false,
+			'decorative' => false,
+		],
 		'prompt' => function ($file) {
 			$prompt = 'You are an accessibility expert writing alt text. Write a concise, short description in one to three sentences. Start directly with the subject - NO introductory phrases like "image of", "shows", "displays", "depicts", "contains", "features" etc.';
 			if ($file->parent() instanceof \Kirby\Cms\Page) {
