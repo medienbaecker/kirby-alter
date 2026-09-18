@@ -26,7 +26,14 @@ class OpenAiProvider extends CustomProvider
 
 	public function body(string $prompt, ?array $image = null): array
 	{
-		return array_merge(['reasoning_effort' => 'none'], parent::body($prompt, $image));
+		$body = array_merge(['reasoning_effort' => 'none'], parent::body($prompt, $image));
+
+		if (isset($body['max_tokens'])) {
+			$body['max_completion_tokens'] = $body['max_tokens'];
+			unset($body['max_tokens']);
+		}
+
+		return $body;
 	}
 
 	public function requiresKey(): bool
