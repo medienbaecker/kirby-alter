@@ -257,6 +257,7 @@ return [
 			return [
 				'success' => true,
 				'generated' => $result['generated'],
+				'failed' => $result['failed'],
 				'images' => $result['images'],
 			];
 		},

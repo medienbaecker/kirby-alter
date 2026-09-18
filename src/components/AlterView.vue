@@ -746,6 +746,16 @@ export default {
 			}
 		},
 
+		logGenerationErrors(response) {
+			const results = Array.isArray(response?.images) ? response.images : [];
+
+			for (const result of results) {
+				if (result?.error) {
+					console.warn('Alter: ' + result.imageId + ': ' + result.error);
+				}
+			}
+		},
+
 		// ---------------------------------------------------------------------
 		// Draft autosave (debounced) helpers
 		// ---------------------------------------------------------------------
@@ -863,6 +873,7 @@ export default {
 					if (response?.error) throw new Error(response.error);
 					const generated = Number(response?.generated ?? 0);
 					this.applyGenerationResponse(response);
+					this.logGenerationErrors(response);
 					this.$panel.notification.success(
 						generated > 0
 							? this.$t('medienbaecker.alter.generate.success.all', { count: generated })
@@ -894,6 +905,7 @@ export default {
 						if (response?.error) throw new Error(response.error);
 						totalGenerated += Number(response?.generated ?? 0);
 						this.applyGenerationResponse(response);
+						this.logGenerationErrors(response);
 					} finally {
 						this.$set(this.generating, imageId, false);
 					}
@@ -949,6 +961,7 @@ export default {
 						: this.$t('medienbaecker.alter.generate.none');
 
 				this.applyGenerationResponse(response);
+				this.logGenerationErrors(response);
 				this.$panel.notification.success(message);
 			} catch (error) {
 				this.$panel.notification.error(

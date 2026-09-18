@@ -15,15 +15,29 @@ class PanelGenerator extends Generator
 	{
 		$results = [];
 		$totalGenerated = 0;
+		$totalFailed = 0;
 
 		foreach ($images as $image) {
-			$result = $this->generateForImage($image, $languages, $defaultLanguage);
+			try {
+				$result = $this->generateForImage($image, $languages, $defaultLanguage);
+			} catch (\Throwable $e) {
+				$totalFailed++;
+				$results[] = [
+					'imageId' => $image->id(),
+					'generated' => 0,
+					'languages' => [],
+					'error' => $e->getMessage(),
+				];
+				continue;
+			}
+
 			$totalGenerated += $result['generated'];
 			$results[] = $result;
 		}
 
 		return [
 			'generated' => $totalGenerated,
+			'failed' => $totalFailed,
 			'images' => $results,
 		];
 	}
