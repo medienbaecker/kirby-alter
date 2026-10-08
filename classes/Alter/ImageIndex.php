@@ -15,6 +15,8 @@ use Kirby\Content\Version;
  */
 final class ImageIndex
 {
+	private const FILTERS = ['saved', 'unsaved', 'missing'];
+
 	private function __construct(
 		private readonly array $entries,
 		private readonly array $parents,
@@ -138,15 +140,35 @@ final class ImageIndex
 		return $empty && !$decorative;
 	}
 
-	public function filter(string $name): array
+	public static function filters(?array $option): array
+	{
+		$filters = [];
+
+		foreach ($option ?? self::FILTERS as $key => $value) {
+			if (is_int($key) === true && in_array($value, self::FILTERS, true) === true) {
+				$filters[$value] = ['label' => 'medienbaecker.alter.filter.' . $value];
+			} elseif (is_string($key) === true && is_array($value) === true && is_callable($value['filter'] ?? null) === true) {
+				$filters[$key] = $value;
+			}
+		}
+
+		return $filters;
+	}
+
+	public function filter(string $name, array $filters): array
 	{
 		$key = $this->language->key();
+		$callback = $filters[$name]['filter'] ?? null;
 
-		return match ($name) {
-			'saved'   => array_filter($this->entries, fn($entry) => !$this->isMissing($entry, $key)),
-			'missing' => array_filter($this->entries, fn($entry) => $this->isMissing($entry, $key)),
-			'unsaved' => array_filter($this->entries, fn($entry) => $entry['hasChangesByLang'][$key] ?? false),
-			default   => $this->entries,
+		return match (true) {
+			isset($filters[$name]) === false => $this->entries,
+			$callback !== null => array_filter($this->entries, function ($entry) use ($callback) {
+				$image = App::instance()->file($entry['fileId']);
+				return $image !== null && $callback($image) === true;
+			}),
+			$name === 'saved'   => array_filter($this->entries, fn($entry) => !$this->isMissing($entry, $key)),
+			$name === 'missing' => array_filter($this->entries, fn($entry) => $this->isMissing($entry, $key)),
+			$name === 'unsaved' => array_filter($this->entries, fn($entry) => $entry['hasChangesByLang'][$key] ?? false),
 		};
 	}
 

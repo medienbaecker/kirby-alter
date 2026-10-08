@@ -202,6 +202,10 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		filters: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	data() {
@@ -374,20 +378,7 @@ export default {
 			return option ? option.text : this.$t('medienbaecker.alter.filter.all');
 		},
 		filterOptions() {
-			return [
-				{
-					text: this.$t('medienbaecker.alter.filter.saved'),
-					value: 'saved',
-				},
-				{
-					text: this.$t('medienbaecker.alter.filter.unsaved'),
-					value: 'unsaved',
-				},
-				{
-					text: this.$t('medienbaecker.alter.filter.missing'),
-					value: 'missing',
-				},
-			];
+			return this.filters;
 		},
 
 		emptyStateMessage() {
@@ -459,7 +450,7 @@ export default {
 		const urlParams = new URLSearchParams(window.location.search);
 		const filterParam = urlParams.get('filter');
 
-		if (filterParam && ['saved', 'missing', 'unsaved'].includes(filterParam)) {
+		if (filterParam && this.filterOptions.some((option) => option.value === filterParam)) {
 			this.filterMode = filterParam;
 		}
 

@@ -23,7 +23,7 @@ Alter appears in the Panel menu automatically. Open it to write, review and save
 
 ## Panel
 
-The toolbar filters the list, counts the saved alt texts, switches the language and saves or discards everything at once. With [generation](#generation) allowed, it also holds the Generate button for the current list.
+The toolbar filters the list (you can add [your own filters](#filters)), counts the saved alt texts, switches the language and saves or discards everything at once. With [generation](#generation) allowed, it also holds the Generate button for the current list.
 
 <img src=".github/panel-toolbar.png" width="1136" alt="The toolbar with filter, counter, generate button and language switch.">
 
@@ -113,6 +113,7 @@ return [
     ],
     'templates' => null,         // limit to file templates
     'ignore' => null,            // fn($file), true keeps the file
+    'filters' => null,           // e.g. ['missing', 'published' => [...]]
     'sortBy' => null,            // e.g. 'date desc'
     'prompt' => 'Custom prompt', // string or fn($file)
     'maxLength' => false,        // e.g. 125
@@ -180,3 +181,80 @@ For full control, pass a function that receives and returns the pages collection
   'desc'
 )
 ```
+
+### Filters
+
+Besides **All images**, the filter dropdown has three built-in entries:
+
+| Key | Label | Shows images |
+| --- | --- | --- |
+| `saved` | Saved | with an alt text, saved or not, or marked as decorative |
+| `unsaved` | Unsaved | with changes that are not saved yet |
+| `missing` | No alt text | without any alt text and not marked as decorative |
+
+All three look at the language selected in the toolbar.
+
+Use `filters` to choose the entries and add your own. Strings pick built-in filters, keyed arrays define custom ones, and the dropdown follows the order of the list:
+
+```php
+'filters' => [
+  'missing',
+  'unsaved',
+  'published' => [
+    'label' => 'Published pages',
+    'filter' => fn($file) => $file->page()?->isPublished() === true,
+  ],
+],
+```
+
+> [!TIP]
+> Like [`panel.menu`](https://getkirby.com/docs/reference/system/options/panel/panel-menu), the list replaces the defaults. To keep a built-in filter, list it.
+
+A custom filter needs a `label` and a `filter` function. The function receives the file and returns `true` to keep it. The label is a string, a translation key or an array with one entry per Panel language, such as `['en' => 'Published pages', 'de' => 'Veröffentlichte Seiten']`. The key appears in the URL, for example `?filter=published`.
+
+#### Used images
+
+Which images a site actually shows depends on its templates. A template might use a files field, a block, a KirbyText tag or just `$page->image()`, and Alter can't know which. So "used" is up to you. This filter covers the common cases:
+
+```php
+'used' => [
+  'label' => 'Used images',
+  'filter' => function ($file) {
+    static $references = null;
+
+    if ($references === null) {
+      $references = [];
+      $languages = kirby()->languages()->codes() ?: [null];
+
+      foreach ([site(), ...site()->index(true)->values()] as $model) {
+        foreach ($languages as $language) {
+          $text = implode("\n", $model->content($language)->toArray());
+
+          preg_match_all('!file://\w+|[\w./-]+\.\w+!', $text, $matches);
+
+          foreach (array_unique($matches[0]) as $reference) {
+            $references[$reference] = true;
+            $references[ltrim($model->id() . '/' . $reference, '/')] = true;
+          }
+        }
+
+        if ($image = $model->image()) {
+          $references[$image->id()] = true;
+        }
+      }
+    }
+
+    return isset($references[$file->id()]) || isset($references['file://' . $file->uuid()?->id()]);
+  },
+],
+```
+
+It reads the content of the site and every page, including drafts, in every language, and collects everything that looks like a UUID (`file://…`), a filename (`photo.jpg`) or a path (`other-page/photo.jpg`). An image counts as used when:
+
+- a files field, block or layout points to it, by UUID or by filename.
+- a KirbyText tag shows it, such as `(image: photo.jpg)` or `(image: other-page/photo.jpg)`.
+- it is the first image of its page. Remove this part if your templates don't fall back to `$page->image()`, or add what they do instead.
+
+The filter function runs once per image, so the `static` variable keeps the scan to once per request. On a site with 1,000 pages and 1,800 images, the filter adds about 0.1 seconds to the Panel view.
+
+Images that a template picks some other way, such as `$page->images()->last()`, aren't found. A filename that only appears in plain text on its own page counts as used.

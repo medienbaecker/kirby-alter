@@ -22,6 +22,7 @@ Kirby::plugin('medienbaecker/alter', [
 		],
 		'templates' => null,
 		'ignore' => null,
+		'filters' => null,
 		'sortBy' => null,
 		'maxLength' => false,
 		'panel' => [

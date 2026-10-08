@@ -57,7 +57,7 @@ return [
 			$index = ImageIndex::build($language, $allowedTemplates, $ignore, option('medienbaecker.alter.panel.decorative', false) === true, $sortBy);
 			$aggregates = $index->aggregate();
 
-			$filtered = array_values($index->filter($filter));
+			$filtered = array_values($index->filter($filter, ImageIndex::filters($kirby->option('medienbaecker.alter.filters'))));
 			$filteredTotal = count($filtered);
 
 			$offset = ($page - 1) * $limit;
