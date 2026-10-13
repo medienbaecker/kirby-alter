@@ -19,12 +19,12 @@
 					</div>
 
 					<div v-if="totalImagesCount > 0" class="k-view-button">
-						<k-button variant="filled" size="sm" icon="check" element="span"
+						<k-button class="alter-counter" variant="filled" size="sm" icon="check" element="span"
 							:theme="isComplete ? 'positive' : null" :badge="unsavedImagesCount > 0
 								? { theme: 'orange', text: unsavedImagesCount }
 								: null
 								">
-							{{ `${savedImagesCount}/${totalImagesCount}` }}
+							<alter-odometer :value="savedImagesCount" />/{{ totalImagesCount }}
 						</k-button>
 					</div>
 
@@ -182,7 +182,12 @@
 </template>
 
 <script>
+import AlterOdometer from "./AlterOdometer.vue";
+
 export default {
+	components: {
+		"alter-odometer": AlterOdometer,
+	},
 	props: {
 		page: {
 			type: Number,
@@ -1349,6 +1354,17 @@ export default {
 <style scoped>
 .alter-breadcrumb {
 	margin-inline-start: calc(var(--button-padding) * -1);
+}
+
+.alter-counter,
+.alter-counter :deep(.k-icon) {
+	transition:
+		background-color 320ms ease-out,
+		color 320ms ease-out;
+
+	@media (prefers-reduced-motion: no-preference) {
+		transition-delay: 520ms;
+	}
 }
 
 .alter-card {
