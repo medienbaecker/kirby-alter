@@ -1356,14 +1356,12 @@ export default {
 	margin-inline-start: calc(var(--button-padding) * -1);
 }
 
-.alter-counter,
-.alter-counter :deep(.k-icon) {
-	transition:
-		background-color 320ms ease-out,
-		color 320ms ease-out;
-
-	@media (prefers-reduced-motion: no-preference) {
-		transition-delay: 520ms;
+@media (prefers-reduced-motion: no-preference) {
+	.alter-counter,
+	.alter-counter :deep(.k-icon) {
+		transition:
+			background-color 0s 350ms,
+			color 0s 350ms;
 	}
 }
 
