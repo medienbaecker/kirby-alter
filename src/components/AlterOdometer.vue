@@ -96,8 +96,8 @@ export default {
 .k-alter-odometer {
 	display: inline-flex;
 	font-variant-numeric: tabular-nums;
-	line-height: 1.5;
-	margin-block: -0.25em;
+	line-height: 2;
+	margin-block: -0.5em;
 }
 .k-alter-odometer .k-alter-odometer-digit {
 	display: inline-block;
