@@ -10,7 +10,7 @@ Edit, generate and review alt texts for images in the [Kirby](https://getkirby.c
 composer require medienbaecker/kirby-alter
 ```
 
-Requires Kirby 5+ and PHP 8.2+.
+Requires Kirby 6+ and PHP 8.3+. For Kirby 5, use version 2.x from the `main` branch.
 
 If you don’t use Composer, download this repository and copy it to `site/plugins/kirby-alter`.
 
