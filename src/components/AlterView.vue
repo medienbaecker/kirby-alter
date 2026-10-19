@@ -7,7 +7,7 @@
 					<div class="k-view-button">
 						<k-button :dropdown="true" icon="filter" variant="filled" size="sm" :responsive="'text'"
 							:text="currentFilterLabel" @click="toggleDropdown('filterDropdown')" />
-						<k-dropdown-content ref="filterDropdown" align-x="end">
+						<k-dropdown ref="filterDropdown" align-x="end">
 							<k-dropdown-item icon="filter" :current="filterMode === null" @click="onFilterChange(null)">
 								{{ $t('medienbaecker.alter.filter.all') }}
 							</k-dropdown-item>
@@ -15,7 +15,7 @@
 								:current="filterMode === option.value" @click="onFilterChange(option.value)">
 								{{ option.text }}
 							</k-dropdown-item>
-						</k-dropdown-content>
+						</k-dropdown>
 					</div>
 
 					<div v-if="totalImagesCount > 0" class="k-view-button">
@@ -34,12 +34,12 @@
 							:text="generationButtonLabel" :title="generationButtonLabel"
 							:disabled="generationButtonDisabled"
 							@click="generatingAll ? stopGeneration() : (languages.length > 1 ? toggleDropdown('scopeDropdown') : onGenerateAll('current'))" />
-						<k-dropdown-content ref="scopeDropdown" align-x="end">
+						<k-dropdown ref="scopeDropdown" align-x="end">
 							<k-dropdown-item v-for="scope in generationScopes" icon="aiGenerateText" :key="scope.value"
 								:disabled="scope.disabled" @click="onGenerateAll(scope.value)">
 								{{ scope.text }}
 							</k-dropdown-item>
-						</k-dropdown-content>
+						</k-dropdown>
 					</div>
 
 					<div v-if="languages.length > 1" class="k-view-button k-languages-dropdown">
@@ -48,7 +48,7 @@
 							:aria-label="languageButtonLabel" :title="languageButtonLabel"
 							:badge="hasAnyUnsavedLanguages ? { theme: 'orange' } : null"
 							@click="toggleDropdown('languageDropdown')" />
-						<k-dropdown-content ref="languageDropdown" align-x="end" align-y="bottom" theme="dark">
+						<k-dropdown ref="languageDropdown" align-x="end" align-y="bottom" theme="dark">
 							<k-dropdown-item v-if="defaultLanguageItem" :key="defaultLanguageItem.code"
 								class="k-languages-dropdown-item"
 								:current="currentLanguage === defaultLanguageItem.code"
@@ -80,11 +80,11 @@
 									</span>
 								</span>
 							</k-dropdown-item>
-						</k-dropdown-content>
+						</k-dropdown>
 					</div>
 				</k-button-group>
 
-				<k-form-controls :has-diff="unsavedImagesCount > 0" :is-processing="isSaving" @discard="discardChanges"
+				<k-form-controls :editor="$panel.user.email" :has-diff="unsavedImagesCount > 0" :is-processing="isSaving" @discard="discardChanges"
 					@submit="saveAllChanges" />
 			</template>
 		</k-header>
@@ -134,19 +134,20 @@
 
 				<k-items :items="formatItems(pageGroup.images)" layout="cards" size="huge" :link="false">
 					<template #default="{ item }">
-						<div class="k-item k-cards-item alter-card" :data-image-id="item.id">
+						<div class="k-item k-item-box k-cards-item alter-card" :data-image-id="item.id">
 							<k-link :to="item.panelUrl" class="alter-image-link">
 								<k-image-frame :src="item.thumbUrl" :alt="getImageData(item.id).alt"
 									class="alter-image-frame" back="pattern" ratio="3/2" />
 							</k-link>
 
 							<div class="k-item-content">
-								<k-textarea-field :label="item.filename" name="alt" type="textarea" :value="currentImages[item.id] ? currentImages[item.id].alt : ''
-									" @input="onAltTextInput(item.id, $event)" @focusin.native="setActiveImage(item.id)"
-									@mousedown.native="setActiveImage(item.id)"
-									@keydown.native="onAltTextKeydown(item.id, $event)"
-									:placeholder="placeholderFor(item)" :buttons="false" :counter="true"
-									:maxlength="maxLength || null" size="small" :disabled="isImageDisabled(item.id)" />
+								<div @focusin="setActiveImage(item.id)" @mousedown="setActiveImage(item.id)"
+									@keydown="onAltTextKeydown(item.id, $event)">
+									<k-textarea-field :label="item.filename" name="alt" type="textarea" :value="currentImages[item.id] ? currentImages[item.id].alt : ''
+										" @input="onAltTextInput(item.id, $event)"
+										:placeholder="placeholderFor(item)" :buttons="false" :counter="true"
+										:maxlength="maxLength || null" size="small" :disabled="isImageDisabled(item.id)" />
+								</div>
 								<k-checkbox-input v-if="allowDecorative" class="alter-decorative"
 									:label="$t('medienbaecker.alter.decorative')"
 									:checked="getImageData(item.id).decorative" :disabled="isImageDisabled(item.id)"
@@ -467,7 +468,7 @@ export default {
 		window.panel.events.on('keydown.cmd.s', this.onCmdS);
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		window.panel.events.off('keydown.cmd.s', this.onCmdS);
 	},
 
@@ -649,7 +650,7 @@ export default {
 			const item = this.images.find((img) => img.id === imageId);
 			if (!item) return;
 			if (!item.altByLanguage) item.altByLanguage = {};
-			this.$set(item.altByLanguage, code, hasAlt);
+			item.altByLanguage[code] = hasAlt;
 		},
 
 		canGenerateForScope(scope) {
@@ -691,7 +692,7 @@ export default {
 				.trim();
 
 			const wasChanged = this.hasChanges(imageId);
-			this.$set(this.currentImages[imageId], 'alt', sanitizedValue);
+			this.currentImages[imageId].alt = sanitizedValue;
 			const isChanged = this.hasChanges(imageId);
 			this.updateUnsavedTotals(wasChanged, isChanged);
 		},
@@ -731,12 +732,12 @@ export default {
 
 					if (imageItem) {
 						if (!imageItem.altByLanguage) imageItem.altByLanguage = {};
-						this.$set(imageItem.altByLanguage, code, true);
+						imageItem.altByLanguage[code] = true;
 					}
 
 					if (code !== currentCode) {
 						const current = Number(this.unsavedByLanguage?.[code] ?? 0);
-						this.$set(this.unsavedByLanguage, code, current + 1);
+						this.unsavedByLanguage[code] = current + 1;
 					}
 				}
 			}
@@ -892,7 +893,7 @@ export default {
 			try {
 				for (const imageId of imageIds) {
 					if (this.cancelGeneration) break;
-					this.$set(this.generating, imageId, true);
+					this.generating[imageId] = true;
 					try {
 						const response = await this.$api.post('alter/generate', {
 							imageIds: [imageId],
@@ -903,7 +904,7 @@ export default {
 						this.applyGenerationResponse(response);
 						this.logGenerationErrors(response);
 					} finally {
-						this.$set(this.generating, imageId, false);
+						this.generating[imageId] = false;
 					}
 				}
 
@@ -931,7 +932,7 @@ export default {
 
 			await this.flushAltDraftSaveFor(imageId);
 
-			this.$set(this.generating, imageId, true);
+			this.generating[imageId] = true;
 
 			try {
 				const response = await this.$api.post('alter/generate', {
@@ -965,7 +966,7 @@ export default {
 				);
 				console.error(error);
 			} finally {
-				this.$set(this.generating, imageId, false);
+				this.generating[imageId] = false;
 			}
 		},
 
@@ -1088,7 +1089,7 @@ export default {
 			if (this.currentImages[imageId]) {
 				const wasChanged = this.hasChanges(imageId);
 
-				this.$set(this.currentImages[imageId], 'alt', value);
+				this.currentImages[imageId].alt = value;
 
 				const isChanged = this.hasChanges(imageId);
 				this.updateUnsavedTotals(wasChanged, isChanged);
@@ -1106,7 +1107,7 @@ export default {
 
 			const wasChanged = this.hasChanges(imageId);
 
-			this.$set(current, 'decorative', checked === true);
+			current.decorative = checked === true;
 
 			const isChanged = this.hasChanges(imageId);
 			this.updateUnsavedTotals(wasChanged, isChanged);
@@ -1181,9 +1182,9 @@ export default {
 				const currentData = { alt: image.alt || '', decorative: image.decorative === true };
 				const originalData = { alt: image.altOriginal || '', decorative: image.decorativeOriginal === true };
 
-				this.$set(this.originalImages, image.id, { ...originalData });
-				this.$set(this.currentImages, image.id, { ...currentData });
-				this.$set(this.saving, image.id, false);
+				this.originalImages[image.id] = { ...originalData };
+				this.currentImages[image.id] = { ...currentData };
+				this.saving[image.id] = false;
 			});
 		},
 
@@ -1220,7 +1221,7 @@ export default {
 			const code = this.currentLanguage;
 			if (code) {
 				const current = Number(this.unsavedByLanguage?.[code] ?? 0);
-				this.$set(this.unsavedByLanguage, code, Math.max(0, current + delta));
+				this.unsavedByLanguage[code] = Math.max(0, current + delta);
 			}
 		},
 
@@ -1254,7 +1255,7 @@ export default {
 			await this.flushAltDraftSaveFor(imageId);
 			await this.flushDecorativeSaveFor(imageId);
 
-			this.$set(this.saving, imageId, true);
+			this.saving[imageId] = true;
 
 			try {
 				const image = this.getImageById(imageId);
@@ -1278,7 +1279,7 @@ export default {
 					this.updateSavedTotals(original, current);
 				}
 
-				this.$set(this.originalImages, imageId, { alt: current.alt, decorative: current.decorative });
+				this.originalImages[imageId] = { alt: current.alt, decorative: current.decorative };
 				this.updateUnsavedTotals(wasChanged, false);
 
 				this.$panel.notification.success();
@@ -1286,7 +1287,7 @@ export default {
 				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
 				console.error(error);
 			} finally {
-				this.$set(this.saving, imageId, false);
+				this.saving[imageId] = false;
 			}
 		},
 
@@ -1321,7 +1322,7 @@ export default {
 			const wasChanged = this.hasChanges(imageId);
 
 			// Update local state first
-			this.$set(this.currentImages, imageId, { ...original });
+			this.currentImages[imageId] = { ...original };
 			this.updateUnsavedTotals(wasChanged, this.hasChanges(imageId));
 			this.updateAltByLanguage(imageId, (original.alt ?? '').trim().length > 0);
 
@@ -1353,6 +1354,8 @@ export default {
 
 <style scoped>
 .alter-breadcrumb {
+	flex-grow: 1;
+	min-width: 0;
 	margin-inline-start: calc(var(--button-padding) * -1);
 }
 
