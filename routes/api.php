@@ -288,18 +288,21 @@ return [
 			// Get current language from panel
 			$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
 
-			// 1) Directly update the file with the alt text (publish it)
-			$image = $image->update([
+			$values = [
 				'alt' => $alt,
 				'alt_decorative' => $decorative ? 'true' : '',
-			], $languageCode);
+			];
+			$image = $image->update($values, $languageCode);
 
-			// 2) Delete the changes version if it's now identical to latest
 			$changes = $image->version('changes');
 			$changesLang = $languageCode ?? 'default';
 
-			if ($changes->exists($changesLang) && $changes->isIdentical('latest', $changesLang)) {
-				$changes->delete($changesLang);
+			if ($changes->exists($changesLang)) {
+				$changes->update($values, $changesLang);
+
+				if ($changes->isIdentical('latest', $changesLang)) {
+					$changes->delete($changesLang);
+				}
 			}
 
 			return ['success' => true];
