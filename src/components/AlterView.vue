@@ -772,9 +772,9 @@ export default {
 						resp.error || this.$t('medienbaecker.alter.error')
 					);
 				}
-			} catch (e) {
-				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
-				console.error('Draft save failed', e);
+			} catch (error) {
+				this.$panel.notification.error(error?.message || this.$t('medienbaecker.alter.error'));
+				console.error('Draft save failed', error);
 			}
 		},
 
@@ -1283,7 +1283,7 @@ export default {
 
 				this.$panel.notification.success();
 			} catch (error) {
-				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
+				this.$panel.notification.error(error?.message || this.$t('medienbaecker.alter.error'));
 				console.error(error);
 			} finally {
 				this.$set(this.saving, imageId, false);
@@ -1328,7 +1328,7 @@ export default {
 			try {
 				await this.$api.post('alter/discard', { imageId: image.id });
 			} catch (error) {
-				this.$panel.notification.error(this.$t('medienbaecker.alter.error'));
+				this.$panel.notification.error(error?.message || this.$t('medienbaecker.alter.error'));
 				console.error(error);
 			}
 		},
