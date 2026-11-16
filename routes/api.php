@@ -292,7 +292,7 @@ return [
 			if ($image->lock()->isLocked() === true) {
 				throw new LockedContentException(
 					lock: $image->lock(),
-					key: 'content.lock.publish'
+					key: 'content.lock.update'
 				);
 			}
 
