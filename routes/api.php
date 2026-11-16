@@ -1,5 +1,6 @@
 <?php
 
+use Kirby\Content\LockedContentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Exception\PermissionException;
 use Medienbaecker\Alter\Generator;
@@ -287,6 +288,13 @@ return [
 
 			// Get current language from panel
 			$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
+
+			if ($image->lock()->isLocked() === true) {
+				throw new LockedContentException(
+					lock: $image->lock(),
+					key: 'content.lock.publish'
+				);
+			}
 
 			$values = [
 				'alt' => $alt,
