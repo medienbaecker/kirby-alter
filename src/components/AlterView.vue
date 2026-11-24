@@ -5,7 +5,7 @@
 			<template #buttons>
 				<k-button-group>
 					<div class="k-view-button">
-						<k-button :dropdown="true" icon="filter" variant="filled" size="sm" :responsive="'text'"
+						<k-button :dropdown="true" icon="filter" variant="filled" size="sm" :responsive="true"
 							:text="currentFilterLabel" @click="toggleDropdown('filterDropdown')" />
 						<k-dropdown ref="filterDropdown" align-x="end">
 							<k-dropdown-item icon="filter" :current="filterMode === null" @click="onFilterChange(null)">
@@ -30,7 +30,7 @@
 
 					<div v-if="panelGenerationEnabled" class="k-view-button">
 						<k-button :dropdown="!generatingAll && languages.length > 1" :icon="generationButtonIcon"
-							variant="filled" :theme="generationButtonTheme" size="sm" :responsive="'text'"
+							variant="filled" :theme="generationButtonTheme" size="sm" :responsive="true"
 							:text="generationButtonLabel" :title="generationButtonLabel"
 							:disabled="generationButtonDisabled"
 							@click="generatingAll ? stopGeneration() : (languages.length > 1 ? toggleDropdown('scopeDropdown') : onGenerateAll('current'))" />
