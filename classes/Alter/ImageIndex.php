@@ -188,6 +188,7 @@ final class ImageIndex
 		$latestAlt = $light['latestAltByLang'][$key] ?? '';
 		$changesAlt = $light['changesAltByLang'][$key] ?? null;
 		$currentAlt = $changesAlt ?? $latestAlt;
+		$lock = $image->lock();
 
 		return [
 			'id' => $image->id(),
@@ -214,7 +215,8 @@ final class ImageIndex
 			'sortKey' => $parent['sortKey'],
 			'language' => $this->language->current,
 			'altDefault' => $this->defaultAlt($light, $currentAlt),
-			'editable' => $image->permissions()->update() === true,
+			'editable' => $image->permissions()->update() === true && $lock->isLocked() === false,
+			'lock' => $lock->toArray(),
 		];
 	}
 

@@ -170,6 +170,8 @@
 										</k-button>
 									</k-button-group>
 								</div>
+								<k-form-controls v-if="item.lock.isLocked" is-locked
+									:editor="item.lock.user.email" :modified="item.lock.modified" />
 							</div>
 						</div>
 					</template>

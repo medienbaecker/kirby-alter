@@ -397,16 +397,23 @@ return [
 				$value = $toBool($value) ? 'true' : '';
 			}
 
+			$image = kirby()->file($imageId);
+			if (!$image) {
+				throw new NotFoundException(t('medienbaecker.alter.imageNotFound'));
+			}
+
+			if ($image->permissions()->update() !== true) {
+				throw new PermissionException(t('medienbaecker.alter.noPermission'));
+			}
+
+			if ($image->lock()->isLocked() === true) {
+				throw new LockedContentException(
+					lock: $image->lock(),
+					key: 'content.lock.update'
+				);
+			}
+
 			try {
-				$image = kirby()->file($imageId);
-				if (!$image) {
-					return ['error' => t('medienbaecker.alter.imageNotFound')];
-				}
-
-				if ($image->permissions()->update() !== true) {
-					throw new PermissionException(t('medienbaecker.alter.noPermission'));
-				}
-
 				// Save alt to draft changes (always create or update changes version)
 				$languageCode = kirby()->multilang() ? kirby()->language()?->code() : null;
 				$changes = $image->version('changes');
