@@ -357,8 +357,11 @@ return [
 			$changesContent['alt_decorative'] = $latestContent['alt_decorative'] ?? '';
 			$changes->replace($changesContent, $changesLang);
 
-			// Delete changes if now identical to latest
-			if ($changes->isIdentical('latest', $changesLang)) {
+			$hasLatest = $image->version('latest')->exists($changesLang);
+			$changesValues = array_diff_key($changesContent, ['lock' => true, 'uuid' => true]);
+			$isEmpty = array_filter($changesValues, fn ($value) => $value !== '' && $value !== null) === [];
+
+			if ($changes->isIdentical('latest', $changesLang) || ($hasLatest === false && $isEmpty === true)) {
 				$changes->delete($changesLang);
 			}
 
