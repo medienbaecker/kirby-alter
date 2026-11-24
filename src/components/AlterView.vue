@@ -84,7 +84,7 @@
 					</div>
 				</k-button-group>
 
-				<k-form-controls :editor="$panel.user.email" :has-diff="unsavedImagesCount > 0" :is-processing="isSaving" @discard="discardChanges"
+				<k-form-controls :has-diff="unsavedImagesCount > 0" :is-processing="isSaving" @discard="discardChanges"
 					@submit="saveAllChanges" />
 			</template>
 		</k-header>
